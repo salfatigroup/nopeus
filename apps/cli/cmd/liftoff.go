@@ -5,11 +5,13 @@ import (
 	"os"
 
 	"github.com/salfatigroup/nopeus/config"
+	"github.com/salfatigroup/nopeus/core"
 	"github.com/spf13/cobra"
 )
 
 // the config path as defined by the users flag
 var configPath string
+var dryRun bool
 
 func init() {
     // init command after user argument is defined
@@ -17,6 +19,7 @@ func init() {
 
     // define the liftoff flags
     liftoffCmd.Flags().StringVarP(&configPath, "config", "c", "", "Path to config file. Defaults to $( pwd )/nopeus.yaml")
+    liftoffCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run. Don't actually deploy to the cloud")
 
     // register new command
     rootCmd.AddCommand(liftoffCmd)
@@ -35,10 +38,11 @@ var liftoffCmd = &cobra.Command{
 func liftoff(cmd *cobra.Command, args []string) {
     cfg := config.GetNopeusConfig()
 
-    // pretty print the config
-    fmt.Println("Liftoff... 🚀")
-    fmt.Println("")
-    fmt.Printf("%+v\n", cfg)
+    // deploy the application
+    if err := core.Deploy(cfg); err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
 }
 
 // apply the provided user argument to the configs
@@ -49,6 +53,8 @@ func initConfig() {
     if configPath != "" {
         cfg.SetConfigPath(configPath)
     }
+
+    cfg.SetDryRun(dryRun)
 
     // initialize configs
     if err := cfg.Init(); err != nil {

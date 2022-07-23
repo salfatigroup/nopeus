@@ -8,7 +8,7 @@ type CloudApplicationLayerConfig struct {
     ConfigVersion string `yaml:"version"`
 
     // the cloud vendor the applications will be deployed to
-    CloudVendor string `yaml:"cloud_vendor"`
+    CloudVendor string `yaml:"vendor"`
 
     // supported hosts for TLS and DNS
     Hosts []string `yaml:"hosts"`

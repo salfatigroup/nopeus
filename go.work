@@ -3,4 +3,6 @@ go 1.18
 use (
 	./apps/cli
 	./pkg/config
+	./pkg/core
+	./pkg/templates
 )
