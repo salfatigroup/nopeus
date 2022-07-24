@@ -44,7 +44,7 @@ version: "0.1"
 vendor: aws
 
 hosts:
-  - api.give-chariot.com
+  - api.givechariot.com
 
 services:
   orchestration:
@@ -91,7 +91,8 @@ services:
 
 storage:
   database:
-    - type: postgres
+    - name: db
+      type: postgres
       version: latest
 ```
 

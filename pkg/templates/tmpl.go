@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"text/template"
+	tmpl "text/template"
 
 	"github.com/salfatigroup/nopeus/config"
 )
@@ -69,7 +69,7 @@ func renderTerraformTemplates(cfg *config.NopeusConfig, destLocation string, env
 // render a single terraform file template
 func renderTerraformFile(cfg *config.NopeusConfig, destLocation string, env string, file string) error {
     // render the template
-    rendered, err := renderTemplate(cfg, file, env)
+    rendered, err := renderTfTemplate(cfg, file, env)
     if err != nil {
         return err
     }
@@ -84,8 +84,36 @@ func renderTerraformFile(cfg *config.NopeusConfig, destLocation string, env stri
     return nil
 }
 
+// render a helm values chart
+func RenderHelmTemplateFile(runtimeServices config.ServiceTemplateData) error {
+    // get the template file
+    templateContent, err := StaticHelmTemplates.ReadFile(filepath.Join("helm", runtimeServices.GetHelmValuesTemplate()))
+    if err != nil {
+        return err
+    }
+
+    // render template
+    tmpl, err := tmpl.New(runtimeServices.GetHelmValuesTemplate()).
+        Funcs(GetTempalteFuncs()).
+        Parse(string(templateContent))
+
+    if err != nil {
+        return err
+    }
+
+    // create the buffer to write the rendered template to
+    var renderedBuffer bytes.Buffer
+
+    // render the template
+    if err := tmpl.Execute(&renderedBuffer, runtimeServices.GetHelmValues()); err != nil {
+        return err
+    }
+
+    return writeFile(runtimeServices.GetHelmValuesFile(), renderedBuffer.String())
+}
+
 // render a specific template
-func renderTemplate(cfg *config.NopeusConfig, file string, env string) (string, error) {
+func renderTfTemplate(cfg *config.NopeusConfig, file string, env string) (string, error) {
     // read the template file
     templateContent, err := StaticTerraformTemplates.ReadFile(file)
     if err != nil {
@@ -93,7 +121,10 @@ func renderTemplate(cfg *config.NopeusConfig, file string, env string) (string, 
     }
 
     // render the template
-    tmpl, err := template.New(file).Parse(string(templateContent))
+    tmpl, err := tmpl.New(file).
+        Funcs(GetTempalteFuncs()).
+        Parse(string(templateContent))
+
     if err != nil {
         return "", err
     }

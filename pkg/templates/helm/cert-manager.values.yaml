@@ -1,0 +1,21 @@
+{{- if .Name }}
+name: {{ .Name }}
+{{- end }}
+
+{{- if .Version }}
+version: {{ .Version }}
+{{- end }}
+
+{{- if .Custom.Hosts }}
+hosts:
+  {{- range $host := .Custom.Hosts }}
+  - {{ $host }}
+  {{- end }}
+{{- end }}
+
+{{- if .Environment }}
+environment:
+  {{- range $key, $env := .Environment }}
+  {{ $key }}: {{ $env }}
+  {{- end }}
+{{- end }}

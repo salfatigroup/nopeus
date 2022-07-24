@@ -16,7 +16,7 @@ type Service struct {
     // custom ingress definitions
     // if not a single ingress is presented the cluster will
     // stay private
-    Ingress Ingress `yaml:"ingress"`
+    Ingress *Ingress `yaml:"ingress"`
 
     // extend the final k8s configs with whatever you want
     Extend map[string]interface{} `yaml:"extend"`

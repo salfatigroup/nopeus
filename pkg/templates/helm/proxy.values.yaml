@@ -1,0 +1,24 @@
+name: {{ .Name }}
+image: {{ .Image }}
+tag: {{ .Version }}
+{{- if .Custom.Ingress }}
+ingress_map:
+{{ if isSlice .Custom.Ingress -}}
+{{ range $_, $ingress := .Custom.Ingress -}}
+{{ if isSlice $ingress.Paths -}}
+{{ range $_, $path := $ingress.Paths -}}
+- path: {{ $path.Path }}
+  strip: {{ $path.Strip }}
+  upstream: {{ $ingress.ServiceName }}
+  port: {{ $ingress.Port }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- end }}
+{{- if .Environment }}
+environment:
+  {{- range $key, $env := .Environment }}
+  {{ $key }}: {{ $env }}
+  {{- end }}
+{{- end }}
