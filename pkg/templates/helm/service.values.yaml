@@ -1,0 +1,23 @@
+service_name: "{{ .Name }}"
+image: "{{ .Image }}"
+tag: "{{ .Version }}"
+{{- if .ImagePullSecrets }}
+imagePullSecrets:
+    {{- range $index, $secret := .ImagePullSecrets }}
+    - name: "{{ $secret.Name }}"
+    {{- end }}
+{{- end }}
+{{- if .Env }}
+env:
+    {{- range $index, $env := .Env }}
+    - name: "{{ $env.Name }}"
+        value: "{{ $env.Value }}"
+    {{- end }}
+{{- end }}
+{{- if .Ingress.Paths }}
+ingress:
+    {{- range $index, $path := .Ingress.Paths }}
+    - path: "{{ $path.Path }}"
+    {{- end }}
+{{- end }}
+

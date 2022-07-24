@@ -44,7 +44,9 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
     // apply the plan in dry run mode file if new changes are found
     if newChanges {
         fmt.Println("Upading your cloud infrastructure... This can take a while, going to grab some coffee ☕️...")
-        if !cfg.Runtime.DryRun {
+        if cfg.Runtime.DryRun {
+            fmt.Println("Dry run mode enabled, no changes will be applied to the cloud")
+        } else {
             if err := tf.Apply(context.Background()); err != nil {
                 return err
             }
