@@ -11,7 +11,7 @@ import (
 
 // Generate a terraform environment file including all the relevant modules
 // to a given destination path
-func GenerateTerraformEnvironment(cfg *config.NopeusConfig, env string) error {
+func GenerateTerraformEnvironment(cfg *config.NopeusConfig, env string, infra config.InfrastructureConfigInterface) error {
     // define the destination path of the modules
     destLocation, err := getTfDestLocation(cfg.Runtime.TmpFileLocation, cfg.CAL.CloudVendor, env)
     if err != nil {
@@ -21,7 +21,7 @@ func GenerateTerraformEnvironment(cfg *config.NopeusConfig, env string) error {
     // for each file in the embedded templates directory (StaticTerraformTemplates) recursivly
     // generate a terraform file in the destination directory
     // after rendering the template
-    if err := renderTerraformTemplates(cfg, destLocation, env, "terraform"); err != nil {
+    if err := renderTerraformTemplates(cfg, destLocation, env, infra, "terraform"); err != nil {
         return err
     }
 
@@ -44,7 +44,7 @@ func getTfDestLocation(tmpfileLocation string, cloudVendor string, env string) (
 
 // generate the terraform files recursively
 // from the embedded StaticTerraformTemplates
-func renderTerraformTemplates(cfg *config.NopeusConfig, destLocation string, env string, dir string) error {
+func renderTerraformTemplates(cfg *config.NopeusConfig, destLocation string, env string, infra config.InfrastructureConfigInterface, dir string) error {
     dirs, err := StaticTerraformTemplates.ReadDir(dir)
     if err != nil {
         return err
@@ -52,12 +52,12 @@ func renderTerraformTemplates(cfg *config.NopeusConfig, destLocation string, env
 
     for _, d := range dirs {
         if d.IsDir() {
-            if err := renderTerraformTemplates(cfg, destLocation, env, filepath.Join(dir, d.Name())); err != nil {
+            if err := renderTerraformTemplates(cfg, destLocation, env, infra, filepath.Join(dir, d.Name())); err != nil {
                 return err
             }
         } else {
             // render the template
-            if err := renderTerraformFile(cfg, destLocation, env, filepath.Join(dir, d.Name())); err != nil {
+            if err := renderTerraformFile(cfg, destLocation, env, infra, filepath.Join(dir, d.Name())); err != nil {
                 return err
             }
         }
@@ -67,9 +67,9 @@ func renderTerraformTemplates(cfg *config.NopeusConfig, destLocation string, env
 }
 
 // render a single terraform file template
-func renderTerraformFile(cfg *config.NopeusConfig, destLocation string, env string, file string) error {
+func renderTerraformFile(cfg *config.NopeusConfig, destLocation string, env string, infra config.InfrastructureConfigInterface, file string) error {
     // render the template
-    rendered, err := renderTfTemplate(cfg, file, env)
+    rendered, err := renderTfTemplate(cfg, file, env, infra)
     if err != nil {
         return err
     }
@@ -113,7 +113,7 @@ func RenderHelmTemplateFile(runtimeServices config.ServiceTemplateData) error {
 }
 
 // render a specific template
-func renderTfTemplate(cfg *config.NopeusConfig, file string, env string) (string, error) {
+func renderTfTemplate(cfg *config.NopeusConfig, file string, env string, infra config.InfrastructureConfigInterface) (string, error) {
     // read the template file
     templateContent, err := StaticTerraformTemplates.ReadFile(file)
     if err != nil {
@@ -133,7 +133,7 @@ func renderTfTemplate(cfg *config.NopeusConfig, file string, env string) (string
     var renderedBuffer bytes.Buffer
 
     // render the template
-    if err := tmpl.Execute(&renderedBuffer, cfg); err != nil {
+    if err := tmpl.Execute(&renderedBuffer, infra.GetRendererValues()); err != nil {
         return "", err
     }
 

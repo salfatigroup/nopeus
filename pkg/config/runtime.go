@@ -26,6 +26,9 @@ type RuntimeConfig struct {
     // the environment that should be setup (prod/stage/dev)
     Environments []string
 
+    // define the infrastructure per environment
+    Infrastructure map[string]*InfrastructureConfig
+
     // the root nopeus directory
     RootNopeusDir string
 
@@ -65,7 +68,7 @@ func NewRuntimeConfig() *RuntimeConfig {
     }
 
     // return configs
-    return &RuntimeConfig{
+    runtime := &RuntimeConfig{
         // lookup the default config path at $( pwd )/nopeus.yaml
         ConfigPath: GetDefaultConfigPath(),
 
@@ -74,6 +77,9 @@ func NewRuntimeConfig() *RuntimeConfig {
 
         // by default use only one environment - production
         Environments: []string{ "prod" },
+
+        // define the infrastructure per environment
+        Infrastructure: map[string]*InfrastructureConfig{},
 
         // by default use the root nopeus directory
         RootNopeusDir: rootNopeusDir,
@@ -117,6 +123,14 @@ func NewRuntimeConfig() *RuntimeConfig {
         // default namespace for the main deployments
         DefaultNamespace: "nopeus-app",
     }
+
+    for _, env := range runtime.Environments {
+        runtime.Infrastructure[env] = &InfrastructureConfig{
+            environment: env,
+        }
+    }
+
+    return runtime
 }
 
 // Once the HasBeenInitialized flag is set to true,

@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/mittwald/go-helm-client v0.11.3
+	k8s.io/client-go v0.24.3
 )
 
 require (
@@ -128,7 +129,6 @@ require (
 	k8s.io/apimachinery v0.24.3 // indirect
 	k8s.io/apiserver v0.24.2 // indirect
 	k8s.io/cli-runtime v0.24.3 // indirect
-	k8s.io/client-go v0.24.3 // indirect
 	k8s.io/component-base v0.24.2 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect

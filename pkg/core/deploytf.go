@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -55,6 +56,23 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
         }
     } else {
         fmt.Println("No new changes found in terraform plan 🤷‍♂️")
+    }
+
+    // get the terraform output and set them to the infrastructure config
+    fmt.Println("Getting the cloud infrastructure output...")
+    if outputs, err := tf.Output(context.Background()); err != nil {
+        return err
+    } else {
+        // apply the outputs to the infrastructure configs
+        if envBytes, ok := outputs["environment"]; ok {
+            var env string
+            if err := json.Unmarshal(envBytes.Value, &env); err != nil {
+                return err
+            }
+            cfg.Runtime.Infrastructure[env].SetOutputs(outputs)
+        } else {
+            return fmt.Errorf("environment variable is missing from terraform outputs - %s not found", string(envBytes.Value))
+        }
     }
 
     return nil

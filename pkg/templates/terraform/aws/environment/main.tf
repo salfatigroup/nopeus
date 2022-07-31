@@ -12,9 +12,10 @@ provider "aws" {
 }
 
 locals {
-  name = "salfatigroup-nopeus-${replace(basename(path.cwd), "_", "-")}"
+  name = "salfatigroup-nopeus-${replace(basename(path.cwd), "_", "-")}-${local.environment}"
   cluster_version = "1.22"
   region = "us-west-1"
+  environment = "{{ .Environment }}"
 
   network_cidr = "172.16.0.0/16"
 
@@ -26,6 +27,23 @@ locals {
 
 data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" {}
+
+# outputs
+output "name" {
+  value = local.name
+}
+
+output "region" {
+  value = local.region
+}
+
+output "environment" {
+  value = local.environment
+}
+
+output "cluster_identifier" {
+  value = aws_eks_cluster.aws-cluster.arn
+}
 
 ################################################################################
 # EKS Module

@@ -8,8 +8,9 @@ import (
 // generateTerraformFiles generates the terraform files
 // based on the provided configurations
 func generateTerraformFiles(cfg *config.NopeusConfig) error {
-    for _, env := range cfg.Runtime.Environments {
-        if err := templates.GenerateTerraformEnvironment(cfg, env); err != nil {
+    // iterate over the infrastructure configs map[string]InfrastructureConfig
+    for env, infra := range cfg.Runtime.Infrastructure {
+        if err := templates.GenerateTerraformEnvironment(cfg, env, infra); err != nil {
             return err
         }
     }
