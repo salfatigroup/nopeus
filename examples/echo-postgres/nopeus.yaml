@@ -1,0 +1,23 @@
+# define the nopeus supported config version
+version: "0.1"
+
+# define the cloud vendor for the underlying infrastructure
+vendor: aws
+
+# define your applications
+services:
+  echo:
+    image: jmalloc/echo-server
+    version: latest
+    environment:
+      PORT: 9001
+    ingress:
+      paths:
+        - path: /echo
+          strip: true
+
+storage:
+  database:
+    - name: db
+      type: postgres
+      version: latest
