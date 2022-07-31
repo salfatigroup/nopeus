@@ -30,7 +30,6 @@ func Deploy(cfg *config.NopeusConfig) (err error) {
             return
         }
     }()
-
     // wait for all the goroutines to finish
     wg.Wait()
 
@@ -51,7 +50,13 @@ func Deploy(cfg *config.NopeusConfig) (err error) {
 // based on the provided configurations, terraform files,
 // k8s/helm charts and manifests
 func deployToCloud(cfg *config.NopeusConfig) error {
+    // deploy the terraform files
     if err := runTerraform(cfg); err != nil {
+        return err
+    }
+
+    // deploy the k8s/helm charts and manifests
+    if err := runK8s(cfg); err != nil {
         return err
     }
 

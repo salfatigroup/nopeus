@@ -1,7 +1,11 @@
 package config
 
 import (
+	"io/ioutil"
 	"os/exec"
+	"time"
+
+	helmclient "github.com/mittwald/go-helm-client"
 )
 
 // define the runtime default microservice template data
@@ -11,6 +15,8 @@ type NopeusDefaultMicroservice struct {
     ValuesTemplate string `yaml:"values_template"`
     ValuesPath string `yaml:"values_path"`
     Values *HelmRendererValues `yaml:"values"`
+    Namespace string `yaml:"namespace"`
+    dryRun bool `yaml:"dry_run"`
 }
 
 // return the name of the service
@@ -38,12 +44,49 @@ func (m *NopeusDefaultMicroservice) GetHelmValues() *HelmRendererValues {
     return m.Values
 }
 
+// return the chart specification required for the helm chart deployment
+func (m *NopeusDefaultMicroservice) GetChartSpec() (*helmclient.ChartSpec, error) {
+    buf, err := ioutil.ReadFile(m.ValuesPath)
+    if err != nil {
+        return nil, err
+    }
+
+    chartSpec := helmclient.ChartSpec{
+        ReleaseName: m.Name,
+        ChartName: m.HelmPackage,
+        Version: "0.1.0",
+        ValuesYaml: string(buf),
+        DryRun: m.dryRun,
+        Wait: false, // true, TODO: wait for jobs
+        DependencyUpdate: true,
+        Timeout: time.Duration(time.Minute*15),
+    }
+
+    if m.Namespace != "" {
+        chartSpec.Namespace = m.Namespace
+        chartSpec.CreateNamespace = true
+    }
+
+    return &chartSpec, nil
+}
+
 // return the helm command to use for the installation
 func (m *NopeusDefaultMicroservice) GetHelmCommand() (cmd *exec.Cmd) {
-    return exec.Command("helm", "upgrade", "--install", m.Name, m.HelmPackage, "--values", m.ValuesPath)
+    // append cmd args at the end
+    cmds := []string{"upgrade", "--install", m.Name, m.HelmPackage, "--values", m.ValuesPath}
+    if m.Namespace != "" {
+        cmds = append(cmds, "--namespace", m.Namespace, "--create-namespace")
+    }
+
+    return exec.Command("helm", cmds...)
 }
 
 // return the uninstall command
 func (m *NopeusDefaultMicroservice) GetUninstallCommand() (cmd *exec.Cmd) {
-    return exec.Command("helm", "uninstall", m.Name)
+    cmds := []string{"uninstall", m.Name}
+    if m.Namespace != "" {
+        cmds = append(cmds, "--namespace", m.Namespace)
+    }
+
+    return exec.Command("helm", cmds...)
 }

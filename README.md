@@ -43,21 +43,21 @@ version: "0.1"
 
 vendor: aws
 
-hosts:
-  - api.givechariot.com
-
 services:
   orchestration:
-    image: ghcr.io/give-chariot/orchestration
+    image: ghcr.io/chariot-giving/orchestration
     version: latest
     environment:
       PORT: 9001
     ingress:
       paths:
         - path: /orchestration
+          strip: true
+          hosts:
+            - chariot.salfati.group
 
   charityvest:
-    image: ghcr.io/give-chariot/charityvest
+    image: ghcr.io/chariot-giving/charityvest
     version: latest
     replicas: 1
     environment:
@@ -66,7 +66,7 @@ services:
       CHARIOT_HEADLESS: true
 
   fidelity:
-    image: ghcr.io/give-chariot/fidelity
+    image: ghcr.io/chariot-giving/fidelity
     version: latest
     replicas: 1
     environment:
@@ -74,7 +74,7 @@ services:
       CHARIOT_HEADLESS: true
 
   npt:
-    image: ghcr.io/give-chariot/npt
+    image: ghcr.io/chariot-giving/npt
     version: latest
     replicas: 1
     environment:
@@ -82,7 +82,7 @@ services:
       CHARIOT_HEADLESS: true
 
   schwab:
-    image: ghcr.io/give-chariot/schwab
+    image: ghcr.io/chariot-giving/schwab
     version: latest
     replicas: 1
     environment:

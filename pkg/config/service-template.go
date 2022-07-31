@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+
+	helmclient "github.com/mittwald/go-helm-client"
 )
 
 // define the helm values that will
@@ -44,6 +46,9 @@ type ServiceTemplateData interface {
     // return the values that will be used to render the helm values file
     GetHelmValues() *HelmRendererValues
 
+    // return the chart specification required for the helm chart deployment
+    GetChartSpec() (*helmclient.ChartSpec, error)
+
     // returns the helm command to use for the installation
     GetHelmCommand() (cmd *exec.Cmd)
 
@@ -58,9 +63,11 @@ func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, en
 
     return &NopeusDefaultMicroservice{
         Name: name,
-        HelmPackage: "nopeus/default-microservice",
+        HelmPackage: "salfatigroup/default-microservice",
         ValuesTemplate: "service.values.yaml",
         ValuesPath: fmt.Sprintf("%s/%s.values.yaml", workingDir, name),
+        Namespace: cfg.Runtime.DefaultNamespace,
+        dryRun: cfg.Runtime.DryRun,
         Values: &HelmRendererValues{
             Name: name,
             Image: service.Image,
@@ -81,9 +88,11 @@ func NewDatabaseServiceTemplateData(cfg *NopeusConfig, db *DatabaseStorage, env 
 
     return &NopeusDefaultMicroservice{
         Name: db.Name,
-        HelmPackage: "nopeus/database",
+        HelmPackage: "salfatigroup/database",
         ValuesTemplate: "storage.values.yaml",
         ValuesPath: fmt.Sprintf("%s/%s.values.yaml", workingDir, db.Name),
+        Namespace: cfg.Runtime.DefaultNamespace,
+        dryRun: cfg.Runtime.DryRun,
         Values: &HelmRendererValues{
             Name: db.Name,
             Image: dbImage,

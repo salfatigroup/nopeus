@@ -7,9 +7,6 @@ import (
 
 // define the ingress data for the service
 type Ingress struct {
-    // the hostname of the ingress
-    Host string `yaml:"host"`
-
     // supported paths
     Paths []IngressPath `yaml:"paths"`
 
@@ -18,6 +15,9 @@ type Ingress struct {
 
     // the port of the backend service
     Port int `yaml:"port"`
+
+    // the namespace the upstream resides in
+    Namespace string `yaml:"namespace"`
 }
 
 // define a single ingress path
@@ -27,6 +27,9 @@ type IngressPath struct {
 
     // stripe the ingress path
     Strip bool `yaml:"strip"`
+
+    // the host domains
+    Hosts []string `yaml:"hosts"`
 }
 
 // create ingress service data
@@ -35,9 +38,11 @@ func NewIngressTemplateData(cfg *NopeusConfig, ingressList []*Ingress, env strin
 
     return &NopeusDefaultMicroservice{
         Name: "api-gateway",
-        HelmPackage: "nopeus/proxy",
+        HelmPackage: "salfatigroup/proxy",
         ValuesTemplate: "proxy.values.yaml",
         ValuesPath: fmt.Sprintf("%s/api-gateway.values.yaml", workingDir),
+        Namespace: "apigw",
+        dryRun: cfg.Runtime.DryRun,
         Values: &HelmRendererValues{
             Name: "api-gateway",
             Image: "kong",

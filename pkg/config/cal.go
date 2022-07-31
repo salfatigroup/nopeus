@@ -10,9 +10,6 @@ type CloudApplicationLayerConfig struct {
     // the cloud vendor the applications will be deployed to
     CloudVendor string `yaml:"vendor"`
 
-    // supported hosts for TLS and DNS
-    Hosts []string `yaml:"hosts"`
-
     // the applications that will be deployed to the cloud
     Services map[string]*Service `yaml:"services"`
 

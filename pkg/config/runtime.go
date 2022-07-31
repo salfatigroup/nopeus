@@ -5,15 +5,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	helmrepo "helm.sh/helm/v3/pkg/repo"
 )
 
 // store that helm runtime data
 type HelmRuntime struct {
     // the service template data that will be used to render the helm charts
     ServiceTemplateData []ServiceTemplateData
-
-    // the helm charts command to run
-    HelmCmds []*exec.Cmd
 }
 
 // define the nopeus runtime config
@@ -48,7 +47,10 @@ type RuntimeConfig struct {
     HelmRuntime *HelmRuntime
 
     // default helm repos to load on init
-    HelmRepos []*HelmRepo
+    HelmRepos []*helmrepo.Entry
+
+    // set the default namespace for the main deployments
+    DefaultNamespace string
 }
 
 // create a new instance of the runtime config with all the required default values
@@ -93,7 +95,7 @@ func NewRuntimeConfig() *RuntimeConfig {
         HelmRuntime: &HelmRuntime{},
 
         // default helm repos to load on init
-        HelmRepos: []*HelmRepo{
+        HelmRepos: []*helmrepo.Entry{
             {
                 Name: "salfatigroup",
                 URL: "https://charts.salfati.group",
@@ -111,6 +113,9 @@ func NewRuntimeConfig() *RuntimeConfig {
                 URL: "https://charts.jetstack.io",
             },
         },
+
+        // default namespace for the main deployments
+        DefaultNamespace: "nopeus-app",
     }
 }
 
@@ -170,25 +175,29 @@ func (c *NopeusConfig) SetDryRun(dryRun bool) {
 
 // append default values to the nopeus config
 func (c *NopeusConfig) appendDefaultRuntimeServices() error {
-    for _, env := range c.Runtime.Environments {
-        workingDir := filepath.Join(c.Runtime.TmpFileLocation, c.CAL.CloudVendor, env)
+    // TODO: unable to make cert-manager work with subchart
+    //
+    // for _, env := range c.Runtime.Environments {
+    //     workingDir := filepath.Join(c.Runtime.TmpFileLocation, c.CAL.CloudVendor, env)
 
-        // append cert manager to services
-        c.Runtime.HelmRuntime.ServiceTemplateData = append(
-            c.Runtime.HelmRuntime.ServiceTemplateData,
-            &NopeusDefaultMicroservice{
-                Name: "cert-manager",
-                HelmPackage: "nopeus/cert-manager",
-                ValuesTemplate: "cert-manager.values.yaml",
-                ValuesPath: fmt.Sprintf("%s/cert-manager.values.yaml", workingDir),
-                Values: &HelmRendererValues{
-                    Custom: map[string]interface{}{
-                        "Hosts": c.CAL.Hosts,
-                    },
-                },
-            },
-        )
-    }
+    //     // append cert manager to services
+    //     c.Runtime.HelmRuntime.ServiceTemplateData = append(
+    //         c.Runtime.HelmRuntime.ServiceTemplateData,
+    //         &NopeusDefaultMicroservice{
+    //             Name: "cert-manager",
+    //             HelmPackage: "salfatigroup/cert-manager",
+    //             ValuesTemplate: "cert-manager.values.yaml",
+    //             ValuesPath: fmt.Sprintf("%s/cert-manager.values.yaml", workingDir),
+    //             Namespace: "",
+    //             dryRun: c.Runtime.DryRun,
+    //             Values: &HelmRendererValues{
+    //                 Name: "cert-manager",
+    //                 Version: "latest",
+    //                 Custom: map[string]interface{}{},
+    //             },
+    //         },
+    //     )
+    // }
 
 
     return nil

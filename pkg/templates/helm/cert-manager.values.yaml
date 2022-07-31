@@ -1,18 +1,11 @@
 {{- if .Name }}
 name: {{ .Name }}
 {{- end }}
-
 {{- if .Version }}
 version: {{ .Version }}
 {{- end }}
-
-{{- if .Custom.Hosts }}
-hosts:
-  {{- range $host := .Custom.Hosts }}
-  - {{ $host }}
-  {{- end }}
-{{- end }}
-
+email: {{ .Values.Custom.Email }}
+staging: {{ .Values.Custom.Staging }}
 {{- if .Environment }}
 environment:
   {{- range $key, $env := .Environment }}

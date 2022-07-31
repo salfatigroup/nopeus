@@ -21,7 +21,9 @@ func generateK8sHelmCharts(cfg *config.NopeusConfig) error {
     // render the helm charts fo each service in the runtime
     for _, serviceTemplateData := range cfg.Runtime.HelmRuntime.ServiceTemplateData {
         // render the helm values file
-        templates.RenderHelmTemplateFile(serviceTemplateData)
+        if err := templates.RenderHelmTemplateFile(serviceTemplateData); err != nil {
+            return err
+        }
     }
 
 
@@ -49,6 +51,7 @@ func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
             // TODO: consider a better way to add the service name
             // to the root CAL config
             service.Ingress.ServiceName = serviceName
+            service.Ingress.Namespace = cfg.Runtime.DefaultNamespace
             if service.Environment["PORT"] != "" {
                 port, err := strconv.Atoi(service.Environment["PORT"])
                 if err != nil {
