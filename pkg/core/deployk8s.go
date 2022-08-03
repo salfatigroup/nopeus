@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,8 +13,12 @@ import (
 
 	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/salfatigroup/nopeus/config"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // creates a helm client based on the kubeconfig and required namespace
@@ -37,9 +42,7 @@ func newHelmClient(namespace string, context string) (helmclient.Client, error) 
                 fmt.Printf("\n")
             },
         },
-
-        // TODO: implement kube context
-        KubeContext: "arn:aws:eks:us-west-1:117583274941:cluster/salfatigroup-nopeus-prod",
+        KubeContext: context,
         KubeConfig: kubeconfig,
     }
 
@@ -52,13 +55,34 @@ func newHelmClient(namespace string, context string) (helmclient.Client, error) 
     return helmClient, nil
 }
 
+// return a new kubernetes client
+func newKubernetesClient() (*kubernetes.Clientset, error) {
+    config, err := ctrl.GetConfig()
+    if err != nil {
+        return nil, err
+    }
+
+    return kubernetes.NewForConfig(config)
+}
+
 // run and deploy k8s and helm files per environment
 func runK8s(cfg *config.NopeusConfig) error {
     // apply the helm charts for each environment
     for _, env := range cfg.Runtime.Environments {
-        kubeContext, err := connectToCluster(cfg, env)
-        if err != nil {
-            return err
+        var kubeContext string
+
+        if cfg.Runtime.DryRun {
+            kubeContext = "dryrun"
+        } else {
+            kubeContext, err := connectToCluster(cfg, env)
+            if err != nil {
+                return err
+            }
+
+            // create private registry secrets from dockerconfig
+            if err = createPrivateRegistrySecrets(cfg, env, kubeContext); err != nil {
+                return err
+            }
         }
 
         // run manual helm commands before the generic setup
@@ -70,6 +94,66 @@ func runK8s(cfg *config.NopeusConfig) error {
         if err := applyK8sHelmCharts(cfg, env, kubeContext); err != nil {
             return err
         }
+    }
+
+    return nil
+}
+
+// connect to private registries via the .dockerconfig file
+// this function assumes the user executed `docker login` beforehand
+func createPrivateRegistrySecrets(cfg *config.NopeusConfig, env string, kubeContext string) error {
+    // get $NOPEUS_DOCKER_SERVER, $NOPEUS_DOCKER_USERNAME, $NOPEUS_DOCKER_PASSWORD, $NOPEUS_DOCKER_EMAIL from env
+    dockerServer := os.Getenv("NOPEUS_DOCKER_SERVER")
+    dockerUsername := os.Getenv("NOPEUS_DOCKER_USERNAME")
+    dockerPassword := os.Getenv("NOPEUS_DOCKER_PASSWORD")
+    dockerEmail := os.Getenv("NOPEUS_DOCKER_EMAIL")
+
+    // check if should login to private registry
+    if dockerServer == "" || dockerUsername == "" || dockerPassword == "" || dockerEmail == "" {
+        return nil
+    }
+
+    fmt.Println("Logging into private registry...")
+
+    // create namespace
+    kubeClient, err := newKubernetesClient()
+    if err != nil {
+        return err
+    }
+
+    // create the Runtime.DefaultNamespace if it doesn't exist
+    if _, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), cfg.Runtime.DefaultNamespace, metav1.GetOptions{}); err != nil {
+        _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+            ObjectMeta: metav1.ObjectMeta{
+                Name: cfg.Runtime.DefaultNamespace,
+            },
+        }, metav1.CreateOptions{})
+
+        if err != nil {
+            return err
+        }
+
+        fmt.Printf("Created namespace %s\n", cfg.Runtime.DefaultNamespace)
+    }
+
+    // create secret from the following environment variables $NOPEUS_DOCKER_SERVER, $NOPEUS_DOCKER_USERNAME, $NOPEUS_DOCKER_PASSWORD
+    if _, err := kubeClient.CoreV1().Secrets(cfg.Runtime.DefaultNamespace).Get(context.Background(), "dockerconfig", metav1.GetOptions{}); err != nil {
+        _, err := kubeClient.CoreV1().Secrets(cfg.Runtime.DefaultNamespace).Create(context.Background(), &v1.Secret{
+            ObjectMeta: metav1.ObjectMeta{
+                Name: "dockerconfig",
+            },
+            Type: "kubernetes.io/dockerconfigjson",
+            Data: map[string][]byte{
+                // auth is dockerUsername:dockerPassword encoded in base64
+                ".dockerconfigjson": []byte(fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","email":"%s","auth":"%s"}}}`, dockerServer, dockerUsername, dockerPassword, dockerEmail, base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", dockerUsername, dockerPassword))))),
+            },
+        }, metav1.CreateOptions{})
+
+        if err != nil {
+            return err
+        }
+
+        fmt.Println("Successfully created secret: dockerconfig")
     }
 
     return nil
@@ -203,10 +287,10 @@ func getActiveKubeContext() (string, error) {
 
 // findKubeConfig finds path from env:KUBECONFIG or ~/.kube/config
 func findKubeConfig() (string, error) {
-	env := os.Getenv("KUBECONFIG")
-	if env != "" {
-		return env, nil
-	}
+    env := os.Getenv("KUBECONFIG")
+    if env != "" {
+        return env, nil
+    }
 
     // get the kubeconfig
     home, err := os.UserHomeDir()

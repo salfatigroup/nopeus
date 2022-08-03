@@ -70,6 +70,8 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
                 return err
             }
             cfg.Runtime.Infrastructure[env].SetOutputs(outputs)
+        } else if cfg.Runtime.DryRun {
+            fmt.Println("Dry run mode enabled, ignoring environment output")
         } else {
             return fmt.Errorf("environment variable is missing from terraform outputs - %s not found", string(envBytes.Value))
         }

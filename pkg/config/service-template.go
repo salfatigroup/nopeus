@@ -73,6 +73,11 @@ func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, en
             Image: service.Image,
             Version: service.Version,
             Environment: service.Environment,
+            Custom: map[string]interface{}{
+                "ImagePullSecret": "dockerconfig",
+                "Replicas": service.Replicas,
+                "HealthCheckURL": service.HealthCheckURL,
+            },
         },
     }
 }

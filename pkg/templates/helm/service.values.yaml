@@ -7,3 +7,13 @@ environment:
   {{ $key }}: {{ $env }}
   {{- end }}
 {{- end }}
+{{- if .Custom.ImagePullSecret }}
+imagePullSecrets:
+  - name: {{ .Custom.ImagePullSecret }}
+{{- end }}
+{{- if .Custom.HealthCheckURL }}
+healthCheckUrl: {{ .Custom.HealthCheckURL }}
+{{- end }}
+{{- if and (.Custom.Replicas) (gt .Custom.Replicas 0) }}
+replicas: {{ .Custom.Replicas }}
+{{- end }}

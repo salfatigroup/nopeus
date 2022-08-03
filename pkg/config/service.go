@@ -13,6 +13,12 @@ type Service struct {
     // custom environment variables
     Environment map[string]string `yaml:"environment"`
 
+    // helath check url
+    HealthCheckURL string `yaml:"health_url"`
+
+    // amount of replicas
+    Replicas int `yaml:"replicas"`
+
     // custom ingress definitions
     // if not a single ingress is presented the cluster will
     // stay private

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/salfatigroup/nopeus/config"
@@ -8,16 +9,18 @@ import (
 
 // Deploy the application to the cloud based on
 // the provided configurations
-func Deploy(cfg *config.NopeusConfig) (err error) {
+func Deploy(cfg *config.NopeusConfig) error {
     // in parallel, generate the terraform files and the k8s/helm charts and manifests
     // and deploy the application to the cloud
     var wg sync.WaitGroup
+    var err1 error
+    var err2 error
 
     // generate the terraform files
     wg.Add(1)
     go func() {
         defer wg.Done()
-        if err = generateTerraformFiles(cfg); err != nil {
+        if err1 = generateTerraformFiles(cfg); err1 != nil {
             return
         }
     }()
@@ -26,7 +29,7 @@ func Deploy(cfg *config.NopeusConfig) (err error) {
     wg.Add(1)
     go func() {
         defer wg.Done()
-        if err = generateK8sHelmCharts(cfg); err != nil {
+        if err2 = generateK8sHelmCharts(cfg); err2 != nil {
             return
         }
     }()
@@ -34,14 +37,18 @@ func Deploy(cfg *config.NopeusConfig) (err error) {
     wg.Wait()
 
     // validate errors from the goroutines
-    if err != nil {
-        return err
+    if err1 != nil {
+        return err1
+    } else if err2 != nil {
+        return err2
     }
 
     // deploy the application to the cloud
-    if err = deployToCloud(cfg); err != nil {
+    if err := deployToCloud(cfg); err != nil {
         return err
     }
+
+    fmt.Println("[NOPEUS::MECO] Deployment completed successfully 🚀")
 
     return nil
 }
