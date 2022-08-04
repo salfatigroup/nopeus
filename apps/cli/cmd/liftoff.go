@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 	"github.com/salfatigroup/nopeus/core"
 	"github.com/spf13/cobra"
@@ -36,13 +37,34 @@ var liftoffCmd = &cobra.Command{
 // This command parses the configuration file and
 // deploys the application to the cloud
 func liftoff(cmd *cobra.Command, args []string) {
+    fmt.Println(
+        "🔥 ",
+        util.GradientText("[NOPEUS::STARTUP]", "#db2777", "#f9a8d4"),
+        " - preparing your application for deployment to the cloud",
+    )
     cfg := config.GetNopeusConfig()
 
     // deploy the application
+    fmt.Println(
+        "🚀 ",
+        util.GradientText("[NOPEUS::LIFTOFF]", "#db2777", "#f9a8d4"),
+        " - deploying your application to the cloud",
+    )
     if err := core.Deploy(cfg); err != nil {
-        fmt.Println(err)
+        fmt.Println(
+            "💥 ",
+            util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
+            " - failed to deploy your application to the cloud \n",
+            err,
+        )
         os.Exit(1)
     }
+
+    fmt.Println(
+        "🛰 ",
+        util.GradientText("[NOPEUS::MECO]", "#db2777", "#f9a8d4"),
+        " - your application is securely deployed to the cloud",
+    )
 }
 
 // apply the provided user argument to the configs
@@ -58,7 +80,12 @@ func initConfig() {
 
     // initialize configs
     if err := cfg.Init(); err != nil {
-        fmt.Printf("Error initializing config: %s\n", err)
+        fmt.Println(
+            "💥 ",
+            util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
+            " - failed to initialize nopeus config \n",
+            err,
+        )
         os.Exit(1)
     }
 }

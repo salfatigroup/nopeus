@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	helmclient "github.com/mittwald/go-helm-client"
 )
 
@@ -13,7 +11,7 @@ func (c *NopeusConfig) loadHelmRepos() error {
     }
 
     for _, repo := range c.Runtime.HelmRepos {
-        fmt.Printf("Loading helm repo %s\n", repo.Name)
+        // fmt.Printf("Loading helm repo %s\n", repo.Name)
         if err := helmClient.AddOrUpdateChartRepo(*repo); err != nil {
             return err
         }

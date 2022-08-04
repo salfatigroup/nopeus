@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/salfatigroup/nopeus/cli/util"
 	helmrepo "helm.sh/helm/v3/pkg/repo"
 )
 
@@ -63,7 +64,11 @@ func NewRuntimeConfig() *RuntimeConfig {
     rootNopeusDir := filepath.Join(homeDir, ".nopeus")
     terraformPath, err := exec.LookPath("terraform")
     if err != nil {
-        fmt.Println("terraform not found in PATH. Please install terraform to use nopeus.")
+        fmt.Println(
+            "💥 ",
+            util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
+            " - terraform not found in PATH",
+        )
         os.Exit(1)
     }
 

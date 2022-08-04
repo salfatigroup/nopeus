@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 )
 
@@ -43,12 +44,16 @@ func Deploy(cfg *config.NopeusConfig) error {
         return err2
     }
 
+    fmt.Println(
+        "🚀 ",
+        util.GradientText("[NOPEUS::MAX-Q]", "#db2777", "#f9a8d4"),
+        " - applying the cloud configurations",
+    )
+
     // deploy the application to the cloud
     if err := deployToCloud(cfg); err != nil {
         return err
     }
-
-    fmt.Println("[NOPEUS::MECO] Deployment completed successfully 🚀")
 
     return nil
 }

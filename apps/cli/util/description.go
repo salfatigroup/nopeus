@@ -36,7 +36,7 @@ func getGradientList(startColor string, endColor string, steps uint) ([]string, 
 }
 
 // make the given text in gradient colors
-func gradientText(text string, startColor string, endColor string) string {
+func GradientText(text string, startColor string, endColor string) string {
     var result string
     colorsList, err := getGradientList(startColor, endColor, uint(len(text)))
     if err != nil {
@@ -58,7 +58,7 @@ func gradientText(text string, startColor string, endColor string) string {
 func ShortDescription() string {
     return lipgloss.NewStyle().
         MarginTop(1).
-        Render(gradientText("Nopeus - Cloud Application Layer", "#db2777", "#f9a8d4"))
+        Render(GradientText("Nopeus - Cloud Application Layer", "#db2777", "#f9a8d4"))
 }
 
 // Return a long description of nopeus to the terminal

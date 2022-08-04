@@ -38,8 +38,8 @@ func newHelmClient(namespace string, context string) (helmclient.Client, error) 
             Linting:          true, // Change this to false if you don't want linting.
             DebugLog: func(format string, v ...interface{}) {
                 // Change this to your own logger. Default is 'log.Printf(format, v...)'.
-                fmt.Printf(format, v...)
-                fmt.Printf("\n")
+                // fmt.Printf(format, v...)
+                // fmt.Printf("\n")
             },
         },
         KubeContext: context,
@@ -113,7 +113,7 @@ func createPrivateRegistrySecrets(cfg *config.NopeusConfig, env string, kubeCont
         return nil
     }
 
-    fmt.Println("Logging into private registry...")
+    // fmt.Println("Logging into private registry...")
 
     // create namespace
     kubeClient, err := newKubernetesClient()
@@ -133,7 +133,7 @@ func createPrivateRegistrySecrets(cfg *config.NopeusConfig, env string, kubeCont
             return err
         }
 
-        fmt.Printf("Created namespace %s\n", cfg.Runtime.DefaultNamespace)
+        // fmt.Printf("Created namespace %s\n", cfg.Runtime.DefaultNamespace)
     }
 
     // create secret from the following environment variables $NOPEUS_DOCKER_SERVER, $NOPEUS_DOCKER_USERNAME, $NOPEUS_DOCKER_PASSWORD
@@ -153,7 +153,7 @@ func createPrivateRegistrySecrets(cfg *config.NopeusConfig, env string, kubeCont
             return err
         }
 
-        fmt.Println("Successfully created secret: dockerconfig")
+        // fmt.Println("Successfully created secret: dockerconfig")
     }
 
     return nil
@@ -171,7 +171,7 @@ func getKubeconfigAsBytes() ([]byte, error) {
 
 func manualHelmCommands(cfg *config.NopeusConfig, env string, kubeContext string) error {
     // install cert-manager manually
-    fmt.Println("Installing cert-manager...")
+    // fmt.Println("Installing cert-manager...")
 
     // get client pointing to cert-manager namespace
     helmClient, err := newHelmClient("cert-manager", kubeContext)
@@ -214,7 +214,7 @@ func applyK8sHelmCharts(cfg *config.NopeusConfig, env string, kubeContext string
 
 // apply a helm chart for the environment
 func applyHelmChart(cfg *config.NopeusConfig, service config.ServiceTemplateData, kubeContext string) error {
-    fmt.Printf("Applying helm chart for service %s\n", service.GetName())
+    // fmt.Printf("Applying helm chart for service %s\n", service.GetName())
     // get chart specifications
     chartSpec, err := service.GetChartSpec()
     if err != nil {
@@ -266,8 +266,8 @@ func connectToEks(cfg *config.NopeusConfig, env string) (string, error) {
 
     cmdString := fmt.Sprintf("eks update-kubeconfig --region %s --name %s", region, clusterName)
     cmdArray := strings.Split(cmdString, " ")
-    out, err := exec.Command("aws", cmdArray...).Output()
-    fmt.Println(string(out))
+    _, err := exec.Command("aws", cmdArray...).Output()
+    // fmt.Println(string(out))
     if err != nil {
         return "", err
     }
