@@ -38,6 +38,16 @@ func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
     ingressList := []*config.Ingress{}
 
     // map the data from the config to the runtime services for helm rendering
+    // for each database service
+    for _, db := range cfg.CAL.Storage.Database {
+        // create a new service template data
+        serviceTemplateData := config.NewDatabaseServiceTemplateData(cfg, db, env)
+
+        // add the service template data to the helm runtime
+        cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, serviceTemplateData)
+    }
+
+    // map the data from the config to the runtime services for helm rendering
     // for each service
     for serviceName, service := range cfg.CAL.Services {
         // create a new service template data
@@ -62,16 +72,11 @@ func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
             }
             ingressList = append(ingressList, service.Ingress)
         }
-    }
 
-    // map the data from the config to the runtime services for helm rendering
-    // for each database service
-    for _, db := range cfg.CAL.Storage.Database {
-        // create a new service template data
-        serviceTemplateData := config.NewDatabaseServiceTemplateData(cfg, db, env)
-
-        // add the service template data to the helm runtime
-        cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, serviceTemplateData)
+        // add the DATABASE_URL to each service for each storage
+        for _, db := range cfg.CAL.Storage.Database {
+            service.Environment["STORAGE_DATABASE_URL"] = db.Name
+        }
     }
 
     // if ingress exists create a proxy and add it to the helm runtime

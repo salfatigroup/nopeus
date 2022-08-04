@@ -1,3 +1,13 @@
+{{- if eq .Image "bitnami/postgresql-ha" }}
+postgresql-ha:
+  global:
+    postgresql:
+      username: nopeus
+      existingSecret: "database-secrets-{{ .Name }}"
+    pgpool:
+      adminUsername: nopeus
+      existingSecret: "database-secrets-{{ .Name }}"
+{{- end }}
 name: {{ .Name }}
 image: {{ .Image }}
 tag: {{ .Version }}
