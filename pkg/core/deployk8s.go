@@ -215,7 +215,7 @@ func applyK8sHelmCharts(cfg *config.NopeusConfig, env string, kubeContext string
 
 // apply a helm chart for the environment
 func applyHelmChart(cfg *config.NopeusConfig, service config.ServiceTemplateData, kubeContext string) error {
-    fmt.Println(util.GrayText("Applying helm chart for service" + service.GetName()))
+    fmt.Println(util.GrayText("Applying helm chart for service " + service.GetName()))
     // get chart specifications
     chartSpec, err := service.GetChartSpec()
     if err != nil {
