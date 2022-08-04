@@ -177,6 +177,13 @@ resource "aws_security_group" "aws-allow-icmp" {
     protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(
+    local.tags,
+    {
+      Name = "${local.name}-allow-icmp"
+    }
+  )
 }
 
 # Allow SSH for iperf testing.
@@ -191,6 +198,13 @@ resource "aws_security_group" "aws-allow-ssh" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(
+    local.tags,
+    {
+      Name = "${local.name}-allow-ssh"
+    }
+  )
 }
 
 # Allow TCP traffic from the Internet.
@@ -212,6 +226,13 @@ resource "aws_security_group" "aws-allow-internet" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(
+    local.tags,
+    {
+      Name = "${local.name}-allow-internet"
+    }
+  )
 }
 
 resource "aws_security_group" "aws-cluster-worker" {
@@ -225,6 +246,13 @@ resource "aws_security_group" "aws-cluster-worker" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(
+    local.tags,
+    {
+      Name = "${local.name}-cluster-worker"
+    }
+  )
 }
 
 resource "aws_security_group" "aws-cluster-node" {
@@ -239,10 +267,13 @@ resource "aws_security_group" "aws-cluster-node" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "${aws_eks_cluster.aws-cluster.name}-node",
-    "kubernetes.io/cluster/${aws_eks_cluster.aws-cluster.name}" = "owned",
-  }
+  tags = merge(
+    local.tags,
+    {
+      Name = "${aws_eks_cluster.aws-cluster.name}-node",
+      "kubernetes.io/cluster/${aws_eks_cluster.aws-cluster.name}" = "owned",
+    }
+  )
 }
 
 resource "aws_security_group_rule" "aws-cluster-ingress-node-https" {
@@ -257,6 +288,12 @@ resource "aws_security_group_rule" "aws-cluster-ingress-node-https" {
 
 resource "aws_iam_role" "aws-cluster-iam" {
   name = "terraform-aws-cluster-iam"
+  tags = merge(
+    local.tags,
+    {
+      Name = "${local.name}-cluster-iam"
+    }
+  )
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -283,6 +320,13 @@ resource "aws_iam_role_policy_attachment" "aws-cluster-AmazonEKSServicePolicy" {
 
 resource "aws_iam_role" "aws-node-iam" {
   name = "aws-node-iam"
+
+  tags = merge(
+    local.tags,
+    {
+      Name = "${local.name}-node-iam"
+    }
+  )
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
