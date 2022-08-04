@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 )
 
@@ -30,13 +31,13 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
     }
 
     // initialize terraform
-    fmt.Println("Initializing your cloud deployment...")
+    fmt.Println(util.GrayText("Initializing your cloud deployment..."))
     if err := tf.Init(context.Background(), tfexec.Upgrade(true)); err != nil {
         return err
     }
 
     // plan the terraform file and output the plan file
-    fmt.Println("Planning your cloud infrastructure...")
+    fmt.Println(util.GrayText("Planning your cloud infrastructure..."))
     newChanges, err := tf.Plan(context.Background())
     if err != nil {
         return err
@@ -44,22 +45,22 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
 
     // apply the plan in dry run mode file if new changes are found
     if newChanges {
-        fmt.Println("Upading your cloud infrastructure... This can take a while, going to grab some coffee ☕️...")
+        fmt.Println(util.GrayText("Upading your cloud infrastructure... This can take a while, going to grab some coffee ☕️..."))
         if cfg.Runtime.DryRun {
-            fmt.Println("Dry run mode enabled, no changes will be applied to the cloud")
+            fmt.Println(util.GrayText("Dry run mode enabled, no changes will be applied to the cloud"))
         } else {
             if err := tf.Apply(context.Background()); err != nil {
                 return err
             }
 
-            fmt.Println("Your cloud infrastructure has been updated.")
+            fmt.Println(util.GrayText("Your cloud infrastructure has been updated."))
         }
     } else {
-        fmt.Println("No new changes found in terraform plan 🤷‍♂️")
+        fmt.Println(util.GrayText("No new changes found in terraform plan"), "🤷‍♂️")
     }
 
     // get the terraform output and set them to the infrastructure config
-    fmt.Println("Getting the cloud infrastructure output...")
+    fmt.Println(util.GrayText("Getting the cloud infrastructure output..."))
     if outputs, err := tf.Output(context.Background()); err != nil {
         return err
     } else {
@@ -71,7 +72,7 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
             }
             cfg.Runtime.Infrastructure[env].SetOutputs(outputs)
         } else if cfg.Runtime.DryRun {
-            fmt.Println("Dry run mode enabled, ignoring environment output")
+            fmt.Println(util.GrayText("Dry run mode enabled, ignoring environment output"))
         } else {
             return fmt.Errorf("environment variable is missing from terraform outputs - %s not found", string(envBytes.Value))
         }

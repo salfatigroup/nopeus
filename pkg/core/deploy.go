@@ -62,9 +62,9 @@ func deployToCloud(cfg *config.NopeusConfig) error {
     }
 
     fmt.Println(
-        "🚀 ",
+        "🚀",
         util.GradientText("[NOPEUS::MAX-Q]", "#db2777", "#f9a8d4"),
-        " - applying the cloud configurations",
+        "- applying the cloud configurations",
     )
 
     // deploy the k8s/helm charts and manifests

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	helmclient "github.com/mittwald/go-helm-client"
+	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -171,7 +172,7 @@ func getKubeconfigAsBytes() ([]byte, error) {
 
 func manualHelmCommands(cfg *config.NopeusConfig, env string, kubeContext string) error {
     // install cert-manager manually
-    // fmt.Println("Installing cert-manager...")
+    fmt.Println(util.GrayText("Installing cert-manager..."))
 
     // get client pointing to cert-manager namespace
     helmClient, err := newHelmClient("cert-manager", kubeContext)
@@ -214,7 +215,7 @@ func applyK8sHelmCharts(cfg *config.NopeusConfig, env string, kubeContext string
 
 // apply a helm chart for the environment
 func applyHelmChart(cfg *config.NopeusConfig, service config.ServiceTemplateData, kubeContext string) error {
-    // fmt.Printf("Applying helm chart for service %s\n", service.GetName())
+    fmt.Println(util.GrayText("Applying helm chart for service" + service.GetName()))
     // get chart specifications
     chartSpec, err := service.GetChartSpec()
     if err != nil {

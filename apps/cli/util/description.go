@@ -53,6 +53,11 @@ func GradientText(text string, startColor string, endColor string) string {
     return result
 }
 
+// Convert text to a gray color
+func GrayText(text string) string {
+    return lipgloss.NewStyle().Faint(true).Render(text)
+}
+
 // Return a colorful short description to the terminal
 // cli commander
 func ShortDescription() string {

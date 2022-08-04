@@ -38,21 +38,21 @@ var liftoffCmd = &cobra.Command{
 // deploys the application to the cloud
 func liftoff(cmd *cobra.Command, args []string) {
     fmt.Println(
-        "🔥 ",
+        "🔥",
         util.GradientText("[NOPEUS::STARTUP]", "#db2777", "#f9a8d4"),
-        " - preparing your application for deployment to the cloud",
+        "- preparing your application for deployment to the cloud",
     )
     cfg := config.GetNopeusConfig()
 
     // deploy the application
     fmt.Println(
-        "🚀 ",
+        "🚀",
         util.GradientText("[NOPEUS::LIFTOFF]", "#db2777", "#f9a8d4"),
-        " - deploying your application to the cloud",
+        "- deploying your application to the cloud",
     )
     if err := core.Deploy(cfg); err != nil {
         fmt.Println(
-            "💥 ",
+            "💥",
             util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
             " - failed to deploy your application to the cloud \n",
             err,
@@ -61,9 +61,9 @@ func liftoff(cmd *cobra.Command, args []string) {
     }
 
     fmt.Println(
-        "🛰 ",
+        "🛰",
         util.GradientText("[NOPEUS::MECO]", "#db2777", "#f9a8d4"),
-        " - your application is securely deployed to the cloud",
+        "- your application is securely deployed to the cloud",
     )
 }
 
@@ -81,9 +81,9 @@ func initConfig() {
     // initialize configs
     if err := cfg.Init(); err != nil {
         fmt.Println(
-            "💥 ",
+            "💥",
             util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
-            " - failed to initialize nopeus config \n",
+            "- failed to initialize nopeus config \n",
             err,
         )
         os.Exit(1)

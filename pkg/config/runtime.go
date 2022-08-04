@@ -38,7 +38,7 @@ type RuntimeConfig struct {
 
     // a hidden command for debug purposes that stores
     // all the execution files in the tmp directory
-    KeepExecutionFiles bool
+    RemoveKeepExecutionFiles bool
 
     // a path to terraform binary
     TerraformExecutablePath string
@@ -94,7 +94,7 @@ func NewRuntimeConfig() *RuntimeConfig {
 
         // a hiddent command for debug purposes that stores
         // all the execution files in the tmp directory
-        KeepExecutionFiles: false,
+        RemoveKeepExecutionFiles: false,
 
         // a path to terraform binary
         TerraformExecutablePath: terraformPath,
