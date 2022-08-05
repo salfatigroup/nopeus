@@ -61,7 +61,7 @@ func liftoff(cmd *cobra.Command, args []string) {
     }
 
     fmt.Println(
-        "🛰",
+        "🛰 ",
         util.GradientText("[NOPEUS::MECO]", "#db2777", "#f9a8d4"),
         "- your application is securely deployed to the cloud",
     )
