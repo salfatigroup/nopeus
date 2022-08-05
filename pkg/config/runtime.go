@@ -141,6 +141,11 @@ func NewRuntimeConfig() *RuntimeConfig {
 // Once the HasBeenInitialized flag is set to true,
 // it means the noepsu config has been loaded and is ready to be used
 func (c *NopeusConfig) Init() error {
+    // find and parse user nopeus config file
+    if err := c.parseConfig(); err != nil {
+        return err
+    }
+
     // initialize the root nopeus directory and temp directory
     // create the root nopeus directory if it doesn't exist
     if _, err := os.Stat(c.Runtime.RootNopeusDir); os.IsNotExist(err) {
@@ -158,11 +163,6 @@ func (c *NopeusConfig) Init() error {
 
     // load helm repos
     if err := c.loadHelmRepos(); err != nil {
-        return err
-    }
-
-    // find and parse user nopeus config file
-    if err := c.parseConfig(); err != nil {
         return err
     }
 

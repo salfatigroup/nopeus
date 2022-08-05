@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -52,6 +54,37 @@ func (c *NopeusConfig) parseConfig() error {
     // parse the nopeus yaml config and unmarshall it into the nopeus config
     if err := yaml.NewDecoder(file).Decode(&c.CAL); err != nil {
         return err
+    }
+
+    // convert each environment variable from each service to
+    // a matching value from environment variables when value
+    // is in the following format ${ENV_VAR}
+    if err := c.convertEnvVars(); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (c *NopeusConfig) convertEnvVars() error {
+    // iterate through each service
+    for _, service := range c.CAL.Services {
+        // iterate through each environment variable
+        for key, value := range service.Environment {
+            // check if the value is in the following format ${ENV_VAR}
+            if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
+                // get the environment variable name
+                envVar := value[2 : len(value)-1]
+                // get the environment variable value
+                envValue := os.Getenv(envVar)
+                // check if the environment variable value is empty
+                if envValue == "" {
+                    return fmt.Errorf("environment variable %s is not set", envVar)
+                }
+                // update the environment variable value
+                service.Environment[key] = envValue
+            }
+        }
     }
 
     return nil
