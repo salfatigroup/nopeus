@@ -55,6 +55,9 @@ type RuntimeConfig struct {
 
     // set the default namespace for the main deployments
     DefaultNamespace string
+
+    // nopeus cloud token
+    NopeusCloudToken string
 }
 
 // create a new instance of the runtime config with all the required default values
@@ -127,6 +130,9 @@ func NewRuntimeConfig() *RuntimeConfig {
 
         // default namespace for the main deployments
         DefaultNamespace: "nopeus-app",
+
+        // nopeus cloud token
+        NopeusCloudToken: "",
     }
 
     for _, env := range runtime.Environments {

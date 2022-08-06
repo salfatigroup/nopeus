@@ -4,5 +4,6 @@ use (
 	./apps/cli
 	./pkg/config
 	./pkg/core
+	./pkg/remote
 	./pkg/templates
 )

@@ -6,6 +6,7 @@ import (
 
 	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
+	"github.com/salfatigroup/nopeus/remote"
 )
 
 // Deploy the application to the cloud based on
@@ -44,8 +45,18 @@ func Deploy(cfg *config.NopeusConfig) error {
         return err2
     }
 
+    // get remote cache from nopeus cloud
+    if err := getRemoteCache(cfg); err != nil {
+        return err
+    }
+
     // deploy the application to the cloud
     if err := deployToCloud(cfg); err != nil {
+        return err
+    }
+
+    // remote caching to nopeus cloud
+    if err := setRemoteCache(cfg); err != nil {
         return err
     }
 
@@ -70,6 +81,40 @@ func deployToCloud(cfg *config.NopeusConfig) error {
     // deploy the k8s/helm charts and manifests
     if err := runK8s(cfg); err != nil {
         return err
+    }
+
+    return nil
+}
+
+func setRemoteCache(cfg *config.NopeusConfig) error {
+    // create remote session if token is provided
+    if cfg.Runtime.NopeusCloudToken != "" {
+        session, err := remote.NewRemoteSession(cfg.Runtime.NopeusCloudToken)
+        if err != nil {
+            return err
+        }
+
+        // remote caching
+        if err := session.SetRemoteCache(cfg); err != nil {
+            return err
+        }
+    }
+
+    return nil
+}
+
+func getRemoteCache(cfg *config.NopeusConfig) error {
+    // create remote session if token is provided
+    if cfg.Runtime.NopeusCloudToken != "" {
+        session, err := remote.NewRemoteSession(cfg.Runtime.NopeusCloudToken)
+        if err != nil {
+            return err
+        }
+
+        // remote caching
+        if err := session.GetRemoteCache(); err != nil {
+            return err
+        }
     }
 
     return nil

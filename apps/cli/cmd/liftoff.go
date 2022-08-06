@@ -7,20 +7,25 @@ import (
 	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 	"github.com/salfatigroup/nopeus/core"
+	"github.com/salfatigroup/nopeus/remote"
 	"github.com/spf13/cobra"
 )
 
 // the config path as defined by the users flag
 var configPath string
-var dryRun bool
+var token string
 
 func init() {
+    // get global config
+    cfg := config.GetNopeusConfig()
+
     // init command after user argument is defined
     cobra.OnInitialize(initConfig)
 
     // define the liftoff flags
     liftoffCmd.Flags().StringVarP(&configPath, "config", "c", "", "Path to config file. Defaults to $( pwd )/nopeus.yaml")
-    liftoffCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run. Don't actually deploy to the cloud")
+    liftoffCmd.Flags().BoolVar(&cfg.Runtime.DryRun, "dry-run", false, "Dry run. Don't actually deploy to the cloud")
+    liftoffCmd.Flags().StringVarP(&token, "token", "t", "", "Token to use for authentication")
 
     // register new command
     rootCmd.AddCommand(liftoffCmd)
@@ -76,7 +81,20 @@ func initConfig() {
         cfg.SetConfigPath(configPath)
     }
 
-    cfg.SetDryRun(dryRun)
+    // create remote session if token is provided
+    if token != "" {
+        // verify the token now to prevent any errors later
+        _, err := remote.NewRemoteSession(token)
+        if err != nil {
+            fmt.Println(
+                "💥",
+                util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
+                " - failed to create remote session \n",
+                err,
+            )
+            os.Exit(1)
+        }
+    }
 
     // initialize configs
     if err := cfg.Init(); err != nil {
