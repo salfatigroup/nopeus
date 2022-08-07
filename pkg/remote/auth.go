@@ -9,7 +9,7 @@ import (
 
 // define the toke verification request
 type TokenVerificationRequest struct {
-    Token string `json:"token"`
+    Token string `json:"apikey"`
 }
 
 // define the verification response

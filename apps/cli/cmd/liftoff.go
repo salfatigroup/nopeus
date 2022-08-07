@@ -13,7 +13,6 @@ import (
 
 // the config path as defined by the users flag
 var configPath string
-var token string
 
 func init() {
     // get global config
@@ -25,7 +24,7 @@ func init() {
     // define the liftoff flags
     liftoffCmd.Flags().StringVarP(&configPath, "config", "c", "", "Path to config file. Defaults to $( pwd )/nopeus.yaml")
     liftoffCmd.Flags().BoolVar(&cfg.Runtime.DryRun, "dry-run", false, "Dry run. Don't actually deploy to the cloud")
-    liftoffCmd.Flags().StringVarP(&token, "token", "t", "", "Token to use for authentication")
+    liftoffCmd.Flags().StringVarP(&cfg.Runtime.NopeusCloudToken, "token", "t", "", "Token to use for authentication")
 
     // register new command
     rootCmd.AddCommand(liftoffCmd)
@@ -82,9 +81,9 @@ func initConfig() {
     }
 
     // create remote session if token is provided
-    if token != "" {
+    if cfg.Runtime.NopeusCloudToken != "" {
         // verify the token now to prevent any errors later
-        _, err := remote.NewRemoteSession(token)
+        _, err := remote.NewRemoteSession(cfg.Runtime.NopeusCloudToken)
         if err != nil {
             fmt.Println(
                 "💥",
