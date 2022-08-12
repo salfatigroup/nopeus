@@ -5,3 +5,12 @@ build:
 
 clean:
 	rm -f $(GO_BIN_DIR)/nopeus
+
+release:
+	make build
+	cd ./apps/cli
+	goreleaser --rm-dist
+	cd ../../
+
+deploy-install-script:
+	gsutil cp ./scripts/install.sh gs://salfatigroup-cdn/nopeus/install.sh

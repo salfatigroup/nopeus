@@ -19,7 +19,7 @@ func init() {
     cfg := config.GetNopeusConfig()
 
     // init command after user argument is defined
-    cobra.OnInitialize(initConfig)
+    // cobra.OnInitialize(initConfig)
 
     // define the liftoff flags
     liftoffCmd.Flags().StringVarP(&configPath, "config", "c", "", "Path to config file. Defaults to $( pwd )/nopeus.yaml")
@@ -41,6 +41,9 @@ var liftoffCmd = &cobra.Command{
 // This command parses the configuration file and
 // deploys the application to the cloud
 func liftoff(cmd *cobra.Command, args []string) {
+    // init configs
+    initConfig()
+
     fmt.Println(
         "🔥",
         util.GradientText("[NOPEUS::STARTUP]", "#db2777", "#f9a8d4"),
