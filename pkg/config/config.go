@@ -56,6 +56,13 @@ func (c *NopeusConfig) parseConfig() error {
         return err
     }
 
+    // init environment configs
+    for envName, envData := range c.CAL.GetEnvironments() {
+        if envData == nil {
+            c.CAL.Environments[envName] = NewEnvironmentConfig()
+        }
+    }
+
     // convert each environment variable from each service to
     // a matching value from environment variables when value
     // is in the following format ${ENV_VAR}
@@ -67,10 +74,16 @@ func (c *NopeusConfig) parseConfig() error {
 }
 
 func (c *NopeusConfig) convertEnvVars() error {
+    // get the services
+    services, err := c.CAL.GetServices()
+    if err != nil {
+        return err
+    }
+
     // iterate through each service
-    for _, service := range c.CAL.Services {
+    for _, service := range services {
         // iterate through each environment variable
-        for key, value := range service.Environment {
+        for key, value := range service.EnvironmentVariables {
             // check if the value is in the following format ${ENV_VAR}
             if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
                 // get the environment variable name
@@ -82,7 +95,7 @@ func (c *NopeusConfig) convertEnvVars() error {
                     return fmt.Errorf("environment variable %s is not set", envVar)
                 }
                 // update the environment variable value
-                service.Environment[key] = envValue
+                service.EnvironmentVariables[key] = envValue
             }
         }
     }

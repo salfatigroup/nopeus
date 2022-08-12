@@ -22,7 +22,7 @@ var (
 
 // upload each file in FILES_TO_CACHE from the tmp runtime
 // directory to the nopeus cloud server.
-func (s *RemoteSession) SetRemoteCache(cfg *config.NopeusConfig) error {
+func (s *RemoteSession) SetRemoteCache(cfg *config.NopeusConfig, envName string) error {
     // check if token has been verified and authorized in the client
     // to reduce http requests
     if !s.tokenVerified {
@@ -32,7 +32,7 @@ func (s *RemoteSession) SetRemoteCache(cfg *config.NopeusConfig) error {
     // for each file in FILES_TO_CACHE, upload it to the nopeus cloud server
     // at the NOPEUS_CLOUD_ARTIFACTS_URI
     for _, file := range FILES_TO_CACHE {
-        if err := s.uploadFile(cfg, file); err != nil {
+        if err := s.uploadFile(cfg, file, envName); err != nil {
             return err
         }
     }
@@ -41,7 +41,7 @@ func (s *RemoteSession) SetRemoteCache(cfg *config.NopeusConfig) error {
 }
 
 // get the remote cache from the nopeus cloud server
-func (s *RemoteSession) GetRemoteCache() error {
+func (s *RemoteSession) GetRemoteCache(envName string) error {
     // check if token has been verified and authorized in the client
     // to reduce http requests
     if !s.tokenVerified {
@@ -54,7 +54,7 @@ func (s *RemoteSession) GetRemoteCache() error {
     // for each file in FILES_TO_CACHE, download it from nopeus cloud server
     // to the tmp runtime directory
     for _, file := range FILES_TO_CACHE {
-        if err := s.downloadFile(cfg, file); err != nil {
+        if err := s.downloadFile(cfg, file, envName); err != nil {
             return err
         }
     }
@@ -79,11 +79,14 @@ func (s *RemoteSession) UnlockRemoteState() error {
 // 1. The token in the Authorization header
 // 2. Upload the multipart form data with the file
 // 3. Contain the `type` and `name` of the file in the form data
-func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, file string) error {
-    env := "prod"
+func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, file string, envName string) error {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return err
+    }
 
     // get the file from the tmp directory
-    filePath := cfg.Runtime.TmpFileLocation + "/" + cfg.CAL.CloudVendor + "/" + env +"/" + file
+    filePath := cfg.Runtime.TmpFileLocation + "/" + cloudVendor + "/" + envName +"/" + file
     fileBytes, err := ioutil.ReadFile(filePath)
     if err != nil {
         return err
@@ -98,7 +101,7 @@ func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, file string) error 
         return err
     }
 
-    if err := w.WriteField("name", env + "-" + file); err != nil {
+    if err := w.WriteField("name", envName + "-" + file); err != nil {
         return err
     }
 
@@ -145,11 +148,9 @@ func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, file string) error 
 }
 
 // download a file from nopeus artifact storage
-func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, file string) error {
-    env := "prod"
-
+func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, file string, envName string) error {
     // create the http request
-    endpoint := NOPEUSCLOUD_API_BASE_URL + NOPEUS_CLOUD_ARTIFACTS_URI + "/" + env + "-" + file
+    endpoint := NOPEUSCLOUD_API_BASE_URL + NOPEUS_CLOUD_ARTIFACTS_URI + "/" + envName + "-" + file
     req, err := http.NewRequest("GET", endpoint, nil)
     if err != nil {
         return err
@@ -182,7 +183,12 @@ func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, file string) erro
         return err
     }
 
-    filePath := cfg.Runtime.TmpFileLocation + "/" + cfg.CAL.CloudVendor + "/" + env +"/" + file
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return err
+    }
+
+    filePath := cfg.Runtime.TmpFileLocation + "/" + cloudVendor + "/" + envName +"/" + file
     err = ioutil.WriteFile(filePath, fileBytes, 0644)
     if err != nil {
         return err

@@ -7,12 +7,10 @@ import (
 
 // generateTerraformFiles generates the terraform files
 // based on the provided configurations
-func generateTerraformFiles(cfg *config.NopeusConfig) error {
+func generateTerraformFiles(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
     // iterate over the infrastructure configs map[string]InfrastructureConfig
-    for env, infra := range cfg.Runtime.Infrastructure {
-        if err := templates.GenerateTerraformEnvironment(cfg, env, infra); err != nil {
-            return err
-        }
+    if err := templates.GenerateTerraformEnvironment(cfg, envName, envData); err != nil {
+        return err
     }
 
     return nil

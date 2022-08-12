@@ -1,3 +1,4 @@
+{{- $hostPrefix := .Custom.HostPrefix }}
 name: {{ .Name }}
 image: {{ .Image }}
 tag: {{ .Version }}
@@ -12,7 +13,7 @@ ingress_map:
   {{ if isSlice $path.Hosts -}}
   hosts:
   {{ range $_, $host := $path.Hosts -}}
-  - {{ $host }}
+  - "{{ $hostPrefix }}{{ $host }}"
   {{ end -}}
   {{ end -}}
   namespace: {{ $ingress.Namespace }}

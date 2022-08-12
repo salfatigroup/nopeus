@@ -24,12 +24,6 @@ type RuntimeConfig struct {
     // has the config been initialized yet or not
     HasBeenInitialized bool
 
-    // the environment that should be setup (prod/stage/dev)
-    Environments []string
-
-    // define the infrastructure per environment
-    Infrastructure map[string]*InfrastructureConfig
-
     // the root nopeus directory
     RootNopeusDir string
 
@@ -83,12 +77,6 @@ func NewRuntimeConfig() *RuntimeConfig {
         // not initialized until the config is loaded
         HasBeenInitialized: false,
 
-        // by default use only one environment - production
-        Environments: []string{ "prod" },
-
-        // define the infrastructure per environment
-        Infrastructure: map[string]*InfrastructureConfig{},
-
         // by default use the root nopeus directory
         RootNopeusDir: rootNopeusDir,
 
@@ -135,12 +123,6 @@ func NewRuntimeConfig() *RuntimeConfig {
         NopeusCloudToken: "",
     }
 
-    for _, env := range runtime.Environments {
-        runtime.Infrastructure[env] = &InfrastructureConfig{
-            environment: env,
-        }
-    }
-
     return runtime
 }
 
@@ -172,11 +154,6 @@ func (c *NopeusConfig) Init() error {
         return err
     }
 
-    // append default services to the nopeus config
-    if err := c.appendDefaultRuntimeServices(); err != nil {
-        return err
-    }
-
     // mark the config as initialized
     c.Runtime.HasBeenInitialized = true
     return nil
@@ -196,34 +173,4 @@ func GetDefaultConfigPath() string {
 // define the dry run mode in the global runtime config
 func (c *NopeusConfig) SetDryRun(dryRun bool) {
     c.Runtime.DryRun = dryRun
-}
-
-// append default values to the nopeus config
-func (c *NopeusConfig) appendDefaultRuntimeServices() error {
-    // TODO: unable to make cert-manager work with subchart
-    //
-    // for _, env := range c.Runtime.Environments {
-    //     workingDir := filepath.Join(c.Runtime.TmpFileLocation, c.CAL.CloudVendor, env)
-
-    //     // append cert manager to services
-    //     c.Runtime.HelmRuntime.ServiceTemplateData = append(
-    //         c.Runtime.HelmRuntime.ServiceTemplateData,
-    //         &NopeusDefaultMicroservice{
-    //             Name: "cert-manager",
-    //             HelmPackage: "salfatigroup/cert-manager",
-    //             ValuesTemplate: "cert-manager.values.yaml",
-    //             ValuesPath: fmt.Sprintf("%s/cert-manager.values.yaml", workingDir),
-    //             Namespace: "",
-    //             dryRun: c.Runtime.DryRun,
-    //             Values: &HelmRendererValues{
-    //                 Name: "cert-manager",
-    //                 Version: "latest",
-    //                 Custom: map[string]interface{}{},
-    //             },
-    //         },
-    //     )
-    // }
-
-
-    return nil
 }

@@ -33,8 +33,22 @@ type IngressPath struct {
 }
 
 // create ingress service data
-func NewIngressTemplateData(cfg *NopeusConfig, ingressList []*Ingress, env string) ServiceTemplateData {
-    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cfg.CAL.CloudVendor, env)
+func NewIngressTemplateData(cfg *NopeusConfig, ingressList []*Ingress, env string) (ServiceTemplateData, error) {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return &NopeusDefaultMicroservice{}, err
+    }
+
+    custom := map[string]interface{}{
+        "Ingress": ingressList,
+        "HostPrefix": "",
+    }
+
+    if env != "prod" {
+        custom["HostPrefix"] = env
+    }
+
+    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
 
     return &NopeusDefaultMicroservice{
         Name: "api-gateway",
@@ -47,9 +61,7 @@ func NewIngressTemplateData(cfg *NopeusConfig, ingressList []*Ingress, env strin
             Name: "api-gateway",
             Image: "kong",
             Version: "latest",
-            Custom: map[string]interface{}{
-                "Ingress": ingressList,
-            },
+            Custom: custom,
         },
-    }
+    }, nil
 }

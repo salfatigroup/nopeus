@@ -67,34 +67,32 @@ func newKubernetesClient() (*kubernetes.Clientset, error) {
 }
 
 // run and deploy k8s and helm files per environment
-func runK8s(cfg *config.NopeusConfig) error {
+func runK8s(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
     // apply the helm charts for each environment
-    for _, env := range cfg.Runtime.Environments {
-        var kubeContext string
+    var kubeContext string
 
-        if cfg.Runtime.DryRun {
-            kubeContext = "dryrun"
-        } else {
-            kubeContext, err := connectToCluster(cfg, env)
-            if err != nil {
-                return err
-            }
-
-            // create private registry secrets from dockerconfig
-            if err = createPrivateRegistrySecrets(cfg, env, kubeContext); err != nil {
-                return err
-            }
-        }
-
-        // run manual helm commands before the generic setup
-        // this should be avoid as much as possible
-        if err := manualHelmCommands(cfg, env, kubeContext); err != nil {
+    if cfg.Runtime.DryRun {
+        kubeContext = "dryrun"
+    } else {
+        kubeContext, err := connectToCluster(cfg, envName, envData)
+        if err != nil {
             return err
         }
 
-        if err := applyK8sHelmCharts(cfg, env, kubeContext); err != nil {
+        // create private registry secrets from dockerconfig
+        if err = createPrivateRegistrySecrets(cfg, envName, envData, kubeContext); err != nil {
             return err
         }
+    }
+
+    // run manual helm commands before the generic setup
+    // this should be avoid as much as possible
+    if err := manualHelmCommands(cfg, envName, envData, kubeContext); err != nil {
+        return err
+    }
+
+    if err := applyK8sHelmCharts(cfg, envName, envData, kubeContext); err != nil {
+        return err
     }
 
     return nil
@@ -102,7 +100,7 @@ func runK8s(cfg *config.NopeusConfig) error {
 
 // connect to private registries via the .dockerconfig file
 // this function assumes the user executed `docker login` beforehand
-func createPrivateRegistrySecrets(cfg *config.NopeusConfig, env string, kubeContext string) error {
+func createPrivateRegistrySecrets(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) error {
     // get $NOPEUS_DOCKER_SERVER, $NOPEUS_DOCKER_USERNAME, $NOPEUS_DOCKER_PASSWORD, $NOPEUS_DOCKER_EMAIL from env
     dockerServer := os.Getenv("NOPEUS_DOCKER_SERVER")
     dockerUsername := os.Getenv("NOPEUS_DOCKER_USERNAME")
@@ -170,7 +168,7 @@ func getKubeconfigAsBytes() ([]byte, error) {
     return ioutil.ReadFile(kubeconfigPath)
 }
 
-func manualHelmCommands(cfg *config.NopeusConfig, env string, kubeContext string) error {
+func manualHelmCommands(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) error {
     // install cert-manager manually
     fmt.Println(util.GrayText("Installing cert-manager..."))
 
@@ -202,7 +200,7 @@ func manualHelmCommands(cfg *config.NopeusConfig, env string, kubeContext string
     return nil
 }
 
-func applyK8sHelmCharts(cfg *config.NopeusConfig, env string, kubeContext string) (err error) {
+func applyK8sHelmCharts(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) (err error) {
     // apply the helm charts for the environment
     for _, service := range cfg.Runtime.HelmRuntime.ServiceTemplateData {
         if err = applyHelmChart(cfg, service, kubeContext); err != nil {
@@ -240,19 +238,24 @@ func applyHelmChart(cfg *config.NopeusConfig, service config.ServiceTemplateData
 }
 
 // connect to relevant k8s cluster
-func connectToCluster(cfg *config.NopeusConfig, env string) (string, error) {
-    switch cfg.CAL.CloudVendor {
+func connectToCluster(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig) (string, error) {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return "", err
+    }
+
+    switch cloudVendor {
     case "aws":
         // connect to aws
-        return connectToEks(cfg, env)
+        return connectToEks(cfg, envName, envData)
     default:
-        return "", fmt.Errorf("cloud vendor %s not supported at the moment", cfg.CAL.CloudVendor)
+        return "", fmt.Errorf("cloud vendor %s not supported at the moment", cloudVendor)
     }
 }
 
-func connectToEks(cfg *config.NopeusConfig, env string) (string, error) {
+func connectToEks(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig) (string, error) {
     // get terraform outputs
-    tfOutputs := cfg.Runtime.Infrastructure[env].GetOutputs()
+    tfOutputs := envData.GetOutputs()
 
     // get the region and cluster name values from the terraform outputs
     var region string

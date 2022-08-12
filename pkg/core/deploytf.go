@@ -11,20 +11,23 @@ import (
 )
 
 // run and deploy terraform files per environment
-func runTerraform(cfg *config.NopeusConfig) error {
-    for _, env := range cfg.Runtime.Environments {
-        workingTfDir := fmt.Sprintf("%s/%s/%s", cfg.Runtime.TmpFileLocation, cfg.CAL.CloudVendor, env)
+func runTerraform(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return err
+    }
 
-        if err := runTerraformFile(cfg, workingTfDir); err != nil {
-            return err
-        }
+    workingTfDir := fmt.Sprintf("%s/%s/%s", cfg.Runtime.TmpFileLocation, cloudVendor, envName)
+
+    if err := runTerraformFile(cfg, envName, envData, workingTfDir); err != nil {
+        return err
     }
 
     return nil
 }
 
 // run and deploy terraform file
-func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
+func runTerraformFile(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, workingTfDir string) error {
     tf, err := tfexec.NewTerraform(workingTfDir, cfg.Runtime.TerraformExecutablePath)
     if err != nil {
         return err
@@ -70,7 +73,7 @@ func runTerraformFile(cfg *config.NopeusConfig, workingTfDir string) error {
             if err := json.Unmarshal(envBytes.Value, &env); err != nil {
                 return err
             }
-            cfg.Runtime.Infrastructure[env].SetOutputs(outputs)
+            envData.SetOutputs(outputs)
         } else if cfg.Runtime.DryRun {
             fmt.Println(util.GrayText("Dry run mode enabled, ignoring environment output"))
         } else {

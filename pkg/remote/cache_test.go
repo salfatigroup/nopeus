@@ -48,7 +48,7 @@ func TestGetRemoteCache(t *testing.T) {
     }
 
     // call SetRemoteCache to upload a file to the nopeus cloud server
-    err = session.GetRemoteCache()
+    err = session.GetRemoteCache("prod")
     if err != nil {
         t.Errorf("error setting remote cache: %s", err)
         return
@@ -71,7 +71,7 @@ func TestSetRemoteCache(t *testing.T) {
     }
 
     // call SetRemoteCache to upload a file to the nopeus cloud server
-    err = session.SetRemoteCache(cfg)
+    err = session.SetRemoteCache(cfg, "prod")
     if err != nil {
         t.Errorf("error setting remote cache: %s", err)
         return

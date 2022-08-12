@@ -12,10 +12,11 @@ provider "aws" {
 }
 
 locals {
-  name = "salfatigroup-nopeus-${replace(basename(path.cwd), "_", "-")}-${local.environment}"
+  name = "nopeus-${local.nopeus_stack_name}-${local.environment}"
   cluster_version = "1.22"
   region = "us-west-1"
   environment = "{{ .Environment }}"
+  nopeus_stack_name = "{{ .Name }}"
 
   network_cidr = "172.16.0.0/16"
 
@@ -25,8 +26,8 @@ locals {
   }
 }
 
-data "aws_caller_identity" "current" {}
-data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current-{{ .Name }}-{{ .Environment }}" {}
+data "aws_availability_zones" "available-{{ .Name }}-{{ .Environment }}" {}
 
 # outputs
 output "name" {
@@ -42,25 +43,25 @@ output "environment" {
 }
 
 output "cluster_identifier" {
-  value = aws_eks_cluster.aws-cluster.arn
+  value = aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.arn
 }
 
 ################################################################################
 # EKS Module
 ################################################################################
-resource "aws_eks_cluster" "aws-cluster" {
+resource "aws_eks_cluster" "aws-cluster-{{ .Name }}-{{ .Environment }}" {
   name = local.name
   version = local.cluster_version
-  role_arn = aws_iam_role.aws-cluster-iam.arn
+  role_arn = aws_iam_role.aws-cluster-iam-{{ .Name }}-{{ .Environment }}.arn
 
   vpc_config {
-    security_group_ids = [aws_security_group.aws-cluster-worker.id]
-    subnet_ids = aws_subnet.aws-subnet1[*].id
+    security_group_ids = [aws_security_group.aws-cluster-worker-{{ .Name }}-{{ .Environment }}.id]
+    subnet_ids = aws_subnet.aws-subnet-{{ .Name }}-{{ .Environment }}[*].id
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.aws-cluster-AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.aws-cluster-AmazonEKSServicePolicy,
+    aws_iam_role_policy_attachment.aws-cluster-AmazonEKSClusterPolicy-{{ .Name }}-{{ .Environment }},
+    aws_iam_role_policy_attachment.aws-cluster-AmazonEKSServicePolicy-{{ .Name }}-{{ .Environment }},
   ]
 
   tags = merge(
@@ -71,11 +72,11 @@ resource "aws_eks_cluster" "aws-cluster" {
   )
 }
 
-resource "aws_eks_node_group" "aws-cluster-node" {
-  cluster_name = aws_eks_cluster.aws-cluster.name
-  node_group_name = "${aws_eks_cluster.aws-cluster.name}-node"
-  node_role_arn   = aws_iam_role.aws-node-iam.arn
-  subnet_ids      = aws_subnet.aws-subnet1[*].id
+resource "aws_eks_node_group" "aws-cluster-node-{{ .Name }}-{{ .Environment }}" {
+  cluster_name = aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name
+  node_group_name = "${aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name}-node"
+  node_role_arn   = aws_iam_role.aws-node-iam-{{ .Name }}-{{ .Environment }}.arn
+  subnet_ids      = aws_subnet.aws-subnet-{{ .Name }}-{{ .Environment }}[*].id
 
   scaling_config {
     desired_size = 2
@@ -86,22 +87,22 @@ resource "aws_eks_node_group" "aws-cluster-node" {
   tags = merge(
     local.tags,
     {
-      Name = "${aws_eks_cluster.aws-cluster.name}-node",
-      "kubernetes.io/cluster/${aws_eks_cluster.aws-cluster.name}" = "owned",
+      Name = "${aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name}-node",
+      "kubernetes.io/cluster/${aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name}" = "owned",
     }
   )
 
   depends_on = [
-    aws_iam_role_policy_attachment.aws-node-AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.aws-node-AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.aws-node-AmazonEC2ContainerRegistryReadOnly,
+    aws_iam_role_policy_attachment.aws-node-AmazonEKSWorkerNodePolicy-{{ .Name }}-{{ .Environment }},
+    aws_iam_role_policy_attachment.aws-node-AmazonEKS_CNI_Policy-{{ .Name }}-{{ .Environment }},
+    aws_iam_role_policy_attachment.aws-node-AmazonEC2ContainerRegistryReadOnly-{{ .Name }}-{{ .Environment }},
   ]
 }
 
 ################################################################################
 # Supporting Resources
 ################################################################################
-resource "aws_vpc" "aws-vpc" {
+resource "aws_vpc" "aws-vpc-{{ .Name }}-{{ .Environment }}" {
   cidr_block = local.network_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -114,29 +115,29 @@ resource "aws_vpc" "aws-vpc" {
   )
 }
 
-resource "aws_subnet" "aws-subnet1" {
+resource "aws_subnet" "aws-subnet-{{ .Name }}-{{ .Environment }}" {
   count = 2
 
-  vpc_id = aws_vpc.aws-vpc.id
-  cidr_block = cidrsubnet(aws_vpc.aws-vpc.cidr_block, 8, count.index)
-  availability_zone = data.aws_availability_zones.available.names[count.index]
+  vpc_id = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
+  cidr_block = cidrsubnet(aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.cidr_block, 8, count.index)
+  availability_zone = data.aws_availability_zones.available-{{ .Name }}-{{ .Environment }}.names[count.index]
 
   map_public_ip_on_launch = true
 
   tags = merge(
     local.tags,
     {
-      Name = "${local.name}-subnet1"
+      Name = "${local.name}-subnet"
     }
   )
 }
 
-resource "aws_route_table" "internet_access" {
-  vpc_id = aws_vpc.aws-vpc.id
+resource "aws_route_table" "internet_access-{{ .Name }}-{{ .Environment }}" {
+  vpc_id = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.aws-vpc-igw.id
+    gateway_id = aws_internet_gateway.aws-vpc-igw-{{ .Name }}-{{ .Environment }}.id
   }
 
   tags = merge(
@@ -147,14 +148,14 @@ resource "aws_route_table" "internet_access" {
   )
 }
 
-resource "aws_route_table_association" "internet_access" {
-  count = length(aws_subnet.aws-subnet1)
-  subnet_id = aws_subnet.aws-subnet1[count.index].id
-  route_table_id = aws_route_table.internet_access.id
+resource "aws_route_table_association" "internet_access-{{ .Name }}-{{ .Environment }}" {
+  count = length(aws_subnet.aws-subnet-{{ .Name }}-{{ .Environment }})
+  subnet_id = aws_subnet.aws-subnet-{{ .Name }}-{{ .Environment }}[count.index].id
+  route_table_id = aws_route_table.internet_access-{{ .Name }}-{{ .Environment }}.id
 }
 
-resource "aws_internet_gateway" "aws-vpc-igw" {
-  vpc_id = aws_vpc.aws-vpc.id
+resource "aws_internet_gateway" "aws-vpc-igw-{{ .Name }}-{{ .Environment }}" {
+  vpc_id = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   tags = merge(
     local.tags,
@@ -166,10 +167,10 @@ resource "aws_internet_gateway" "aws-vpc-igw" {
 
 # Security Rules
 
-resource "aws_security_group" "aws-allow-icmp" {
-  name        = "aws-allow-icmp"
+resource "aws_security_group" "aws-allow-icmp-{{ .Name }}-{{ .Environment }}" {
+  name        = "aws-allow-icmp-${local.nopeus_stack_name}-${local.environment}"
   description = "Allow icmp access from anywhere"
-  vpc_id      = aws_vpc.aws-vpc.id
+  vpc_id      = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   ingress {
     from_port   = 8
@@ -187,10 +188,10 @@ resource "aws_security_group" "aws-allow-icmp" {
 }
 
 # Allow SSH for iperf testing.
-resource "aws_security_group" "aws-allow-ssh" {
-  name        = "aws-allow-ssh"
+resource "aws_security_group" "aws-allow-ssh-{{ .Name }}-{{ .Environment }}" {
+  name        = "aws-allow-ssh-${local.nopeus_stack_name}-${local.environment}"
   description = "Allow ssh access from anywhere"
-  vpc_id      = aws_vpc.aws-vpc.id
+  vpc_id      = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   ingress {
     from_port   = 22
@@ -208,10 +209,10 @@ resource "aws_security_group" "aws-allow-ssh" {
 }
 
 # Allow TCP traffic from the Internet.
-resource "aws_security_group" "aws-allow-internet" {
-  name        = "aws-allow-internet"
+resource "aws_security_group" "aws-allow-internet-{{ .Name }}-{{ .Environment }}" {
+  name        = "aws-allow-internet-${local.nopeus_stack_name}-${local.environment}"
   description = "Allow http traffic from the internet"
-  vpc_id      = aws_vpc.aws-vpc.id
+  vpc_id      = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   ingress {
     from_port   = 80
@@ -235,10 +236,10 @@ resource "aws_security_group" "aws-allow-internet" {
   )
 }
 
-resource "aws_security_group" "aws-cluster-worker" {
-  name = "aws-cluster-worker"
+resource "aws_security_group" "aws-cluster-worker-{{ .Name }}-{{ .Environment }}" {
+  name = "aws-cluster-worker-${local.nopeus_stack_name}-${local.environment}"
   description = "Allow all traffic from the cluster worker subnet"
-  vpc_id = aws_vpc.aws-vpc.id
+  vpc_id = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   egress {
     from_port   = 0
@@ -255,10 +256,10 @@ resource "aws_security_group" "aws-cluster-worker" {
   )
 }
 
-resource "aws_security_group" "aws-cluster-node" {
-  name        = "aws-cluster-node"
+resource "aws_security_group" "aws-cluster-node-{{ .Name }}-{{ .Environment }}" {
+  name        = "aws-cluster-node-${local.nopeus_stack_name}-${local.environment}"
   description = "Security group for all nodes in the cluster"
-  vpc_id      = aws_vpc.aws-vpc.id
+  vpc_id      = aws_vpc.aws-vpc-{{ .Name }}-{{ .Environment }}.id
 
   egress {
     from_port   = 0
@@ -270,24 +271,24 @@ resource "aws_security_group" "aws-cluster-node" {
   tags = merge(
     local.tags,
     {
-      Name = "${aws_eks_cluster.aws-cluster.name}-node",
-      "kubernetes.io/cluster/${aws_eks_cluster.aws-cluster.name}" = "owned",
+      Name = "${aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name}-node",
+      "kubernetes.io/cluster/${aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name}" = "owned",
     }
   )
 }
 
-resource "aws_security_group_rule" "aws-cluster-ingress-node-https" {
+resource "aws_security_group_rule" "aws-cluster-ingress-node-https-{{ .Name }}-{{ .Environment }}" {
   description              = "Allow pods to communicate with the cluster API Server"
   from_port                = 443
   protocol                 = "tcp"
-  security_group_id        = aws_security_group.aws-cluster-worker.id
-  source_security_group_id = aws_security_group.aws-cluster-node.id
+  security_group_id        = aws_security_group.aws-cluster-worker-{{ .Name }}-{{ .Environment }}.id
+  source_security_group_id = aws_security_group.aws-cluster-node-{{ .Name }}-{{ .Environment }}.id
   to_port                  = 443
   type                    = "ingress"
 }
 
-resource "aws_iam_role" "aws-cluster-iam" {
-  name = "terraform-aws-cluster-iam"
+resource "aws_iam_role" "aws-cluster-iam-{{ .Name }}-{{ .Environment }}" {
+  name = "terraform-aws-cluster-iam-${local.nopeus_stack_name}-${local.environment}"
   tags = merge(
     local.tags,
     {
@@ -308,18 +309,18 @@ resource "aws_iam_role" "aws-cluster-iam" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "aws-cluster-AmazonEKSClusterPolicy" {
+resource "aws_iam_role_policy_attachment" "aws-cluster-AmazonEKSClusterPolicy-{{ .Name }}-{{ .Environment }}" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role = "${aws_iam_role.aws-cluster-iam.name}"
+  role = "${aws_iam_role.aws-cluster-iam-{{ .Name }}-{{ .Environment }}.name}"
 }
 
-resource "aws_iam_role_policy_attachment" "aws-cluster-AmazonEKSServicePolicy" {
+resource "aws_iam_role_policy_attachment" "aws-cluster-AmazonEKSServicePolicy-{{ .Name }}-{{ .Environment }}" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role = "${aws_iam_role.aws-cluster-iam.name}"
+  role = "${aws_iam_role.aws-cluster-iam-{{ .Name }}-{{ .Environment }}.name}"
 }
 
-resource "aws_iam_role" "aws-node-iam" {
-  name = "aws-node-iam"
+resource "aws_iam_role" "aws-node-iam-{{ .Name }}-{{ .Environment }}" {
+  name = "aws-node-iam-${local.nopeus_stack_name}-${local.environment}"
 
   tags = merge(
     local.tags,
@@ -342,19 +343,19 @@ resource "aws_iam_role" "aws-node-iam" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "aws-node-AmazonEKSWorkerNodePolicy" {
+resource "aws_iam_role_policy_attachment" "aws-node-AmazonEKSWorkerNodePolicy-{{ .Name }}-{{ .Environment }}" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.aws-node-iam.name
+  role       = aws_iam_role.aws-node-iam-{{ .Name }}-{{ .Environment }}.name
 }
 
-resource "aws_iam_role_policy_attachment" "aws-node-AmazonEKS_CNI_Policy" {
+resource "aws_iam_role_policy_attachment" "aws-node-AmazonEKS_CNI_Policy-{{ .Name }}-{{ .Environment }}" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.aws-node-iam.name
+  role       = aws_iam_role.aws-node-iam-{{ .Name }}-{{ .Environment }}.name
 }
 
-resource "aws_iam_role_policy_attachment" "aws-node-AmazonEC2ContainerRegistryReadOnly" {
+resource "aws_iam_role_policy_attachment" "aws-node-AmazonEC2ContainerRegistryReadOnly-{{ .Name }}-{{ .Environment }}" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.aws-node-iam.name
+  role       = aws_iam_role.aws-node-iam-{{ .Name }}-{{ .Environment }}.name
 }
 
 

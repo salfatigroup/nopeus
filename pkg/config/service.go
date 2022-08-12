@@ -11,7 +11,7 @@ type Service struct {
     Version string `yaml:"version"`
 
     // custom environment variables
-    Environment map[string]string `yaml:"environment"`
+    EnvironmentVariables map[string]string `yaml:"environment"`
 
     // helath check url
     HealthCheckURL string `yaml:"health_url"`
@@ -26,4 +26,37 @@ type Service struct {
 
     // extend the final k8s configs with whatever you want
     Extend map[string]interface{} `yaml:"extend"`
+}
+
+// return the image name
+func (s *Service) GetImage() string {
+    return s.Image
+}
+
+// return the image version if exists or latest
+func (s *Service) GetVersion() string {
+    if s.Version == "" {
+        return "latest"
+    }
+
+    return s.Version
+}
+
+// return the environment variables
+func (s *Service) GetEnvironmentVariables() map[string]string {
+    return s.EnvironmentVariables
+}
+
+// return the replicas
+func (s *Service) GetReplicas() int {
+    return s.Replicas
+}
+
+// return the health check url or /status
+func (s *Service) GetHealthCheckURL() string {
+    if s.HealthCheckURL == "" {
+        return "/status"
+    }
+
+    return s.HealthCheckURL
 }

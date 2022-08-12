@@ -9,13 +9,11 @@ import (
 
 // generateK8sHelmCharts generates the k8s/helm charts and manifests
 // based on the provided configurations
-func generateK8sHelmCharts(cfg *config.NopeusConfig) error {
-    for _, env := range cfg.Runtime.Environments {
-        // map the data from the config to the runtime services for helm rendering
-        // for each service
-        if err := updateHelmRuntime(cfg, env); err != nil {
-            return err
-        }
+func generateK8sHelmCharts(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
+    // map the data from the config to the runtime services for helm rendering
+    // for each service
+    if err := updateHelmRuntime(cfg, envName, envData); err != nil {
+        return err
     }
 
     // render the helm charts fo each service in the runtime
@@ -33,15 +31,18 @@ func generateK8sHelmCharts(cfg *config.NopeusConfig) error {
 
 // updateHelmRuntime updates the helm runtime data
 // based on the provided CAL configurations
-func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
+func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig) error {
     // store all the ingresss from each service
     ingressList := []*config.Ingress{}
 
     // map the data from the config to the runtime services for helm rendering
     // for each database service
-    for _, db := range cfg.CAL.Storage.Database {
+    for _, db := range cfg.CAL.GetStorage().Database {
         // create a new service template data
-        serviceTemplateData := config.NewDatabaseServiceTemplateData(cfg, db, env)
+        serviceTemplateData, err := config.NewDatabaseServiceTemplateData(cfg, db, envName)
+        if err != nil {
+            return err
+        }
 
         // add the service template data to the helm runtime
         cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, serviceTemplateData)
@@ -49,9 +50,16 @@ func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
 
     // map the data from the config to the runtime services for helm rendering
     // for each service
-    for serviceName, service := range cfg.CAL.Services {
+    services, err := cfg.CAL.GetServices()
+    if err != nil {
+        return err
+    }
+    for serviceName, service := range services {
         // create a new service template data
-        serviceTemplateData := config.NewServiceTemplateData(cfg, serviceName, service, env)
+        serviceTemplateData, err := config.NewServiceTemplateData(cfg, serviceName, service, envName)
+        if err != nil {
+            return err
+        }
 
         // add the service template data to the helm runtime
         cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, serviceTemplateData)
@@ -62,8 +70,8 @@ func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
             // to the root CAL config
             service.Ingress.ServiceName = serviceName
             service.Ingress.Namespace = cfg.Runtime.DefaultNamespace
-            if service.Environment["PORT"] != "" {
-                port, err := strconv.Atoi(service.Environment["PORT"])
+            if service.EnvironmentVariables["PORT"] != "" {
+                port, err := strconv.Atoi(service.EnvironmentVariables["PORT"])
                 if err != nil {
                     return err
                 }
@@ -74,15 +82,18 @@ func updateHelmRuntime(cfg *config.NopeusConfig, env string) error {
         }
 
         // add the DATABASE_URL to each service for each storage
-        for _, db := range cfg.CAL.Storage.Database {
-            service.Environment["STORAGE_DATABASE_URL"] = db.Name
+        for _, db := range cfg.CAL.GetStorage().Database {
+            service.EnvironmentVariables["STORAGE_DATABASE_URL"] = db.Name
         }
     }
 
     // if ingress exists create a proxy and add it to the helm runtime
     if len(ingressList) > 0 {
         // create a new ingress template data
-        ingressTemplateData := config.NewIngressTemplateData(cfg, ingressList, env)
+        ingressTemplateData, err := config.NewIngressTemplateData(cfg, ingressList, envName)
+        if err != nil {
+            return err
+        }
 
         // add the ingress template data to the helm runtime
         cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, ingressTemplateData)

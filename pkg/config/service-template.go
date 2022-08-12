@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 
 	helmclient "github.com/mittwald/go-helm-client"
@@ -48,18 +47,16 @@ type ServiceTemplateData interface {
 
     // return the chart specification required for the helm chart deployment
     GetChartSpec() (*helmclient.ChartSpec, error)
-
-    // returns the helm command to use for the installation
-    GetHelmCommand() (cmd *exec.Cmd)
-
-    // return the uninstall command
-    GetUninstallCommand() (cmd *exec.Cmd)
 }
 
 
 // return the default nopeus microservice template data
-func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, env string) ServiceTemplateData {
-    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cfg.CAL.CloudVendor, env)
+func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, env string) (ServiceTemplateData, error) {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return &NopeusDefaultMicroservice{}, nil
+    }
+    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
 
     return &NopeusDefaultMicroservice{
         Name: name,
@@ -70,25 +67,29 @@ func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, en
         dryRun: cfg.Runtime.DryRun,
         Values: &HelmRendererValues{
             Name: name,
-            Image: service.Image,
-            Version: service.Version,
-            Environment: service.Environment,
+            Image: service.GetImage(),
+            Version: service.GetVersion(),
+            Environment: service.GetEnvironmentVariables(),
             Custom: map[string]interface{}{
                 "ImagePullSecret": "dockerconfig",
-                "Replicas": service.Replicas,
-                "HealthCheckURL": service.HealthCheckURL,
+                "Replicas": service.GetReplicas(),
+                "HealthCheckURL": service.GetHealthCheckURL(),
             },
         },
-    }
+    }, nil
 }
 
 // return the database service tempalte data
-func NewDatabaseServiceTemplateData(cfg *NopeusConfig, db *DatabaseStorage, env string) ServiceTemplateData {
-    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cfg.CAL.CloudVendor, env)
+func NewDatabaseServiceTemplateData(cfg *NopeusConfig, db *DatabaseStorage, env string) (ServiceTemplateData, error) {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return &NopeusDefaultMicroservice{}, err
+    }
+
+    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
     dbImage, err := GetDbImage(db.Type)
     if err != nil {
-        // TODO: propegate the error
-        panic(err)
+        return &NopeusDefaultMicroservice{}, err
     }
 
     return &NopeusDefaultMicroservice{
@@ -103,5 +104,5 @@ func NewDatabaseServiceTemplateData(cfg *NopeusConfig, db *DatabaseStorage, env 
             Image: dbImage,
             Version: db.Version,
         },
-    }
+    }, nil
 }

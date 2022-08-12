@@ -2,7 +2,6 @@ package config
 
 import (
 	"io/ioutil"
-	"os/exec"
 	"time"
 
 	helmclient "github.com/mittwald/go-helm-client"
@@ -68,25 +67,4 @@ func (m *NopeusDefaultMicroservice) GetChartSpec() (*helmclient.ChartSpec, error
     }
 
     return &chartSpec, nil
-}
-
-// return the helm command to use for the installation
-func (m *NopeusDefaultMicroservice) GetHelmCommand() (cmd *exec.Cmd) {
-    // append cmd args at the end
-    cmds := []string{"upgrade", "--install", m.Name, m.HelmPackage, "--values", m.ValuesPath}
-    if m.Namespace != "" {
-        cmds = append(cmds, "--namespace", m.Namespace, "--create-namespace")
-    }
-
-    return exec.Command("helm", cmds...)
-}
-
-// return the uninstall command
-func (m *NopeusDefaultMicroservice) GetUninstallCommand() (cmd *exec.Cmd) {
-    cmds := []string{"uninstall", m.Name}
-    if m.Namespace != "" {
-        cmds = append(cmds, "--namespace", m.Namespace)
-    }
-
-    return exec.Command("helm", cmds...)
 }
