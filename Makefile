@@ -9,7 +9,7 @@ clean:
 release:
 	make build
 	cd ./apps/cli
-	goreleaser --rm-dist
+	goreleaser release --rm-dist
 	cd ../../
 
 deploy-install-script:
