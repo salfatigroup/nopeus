@@ -26,10 +26,9 @@ export TAR_FILE="$TMPDIR/${FILE_BASENAME}_$(uname -s)_$(uname -m).tar.gz"
 (
     cd "$TMPDIR"
     echo "Downloading nopeus $VERSION..."
-    curl -sfLo -u elonsalfati:$NOPEUS_TOKEN "$TAR_FILE" \
-        "$RELEASES_URL/download/$VERSION/${FILE_BASENAME}_$(uname -s)_$(uname -m).tar.gz"
-    curl -sfLo -u elonsalfati:$NOPEUS_TOKEN "checksums.txt" "$RELEASES_URL/download/$VERSION/checksums.txt"
-    curl -sfLo -u elonsalfati:$NOPEUS_TOKEN "checksums.txt.sig" "$RELEASES_URL/download/$VERSION/checksums.txt.sig"
+    curl -sfLo "$TAR_FILE" "$RELEASES_URL/download/$VERSION/${FILE_BASENAME}_$(uname -s)_$(uname -m).tar.gz" -u elonsalfati:$NOPEUS_TOKEN
+    curl -sfLo "checksums.txt" "$RELEASES_URL/download/$VERSION/checksums.txt" -u elonsalfati:$NOPEUS_TOKEN
+    curl -sfLo "checksums.txt.sig" "$RELEASES_URL/download/$VERSION/checksums.txt.sig" -u elonsalfati:$NOPEUS_TOKEN
     echo "Verifying checksums..."
     sha256sum --ignore-missing --quiet --check checksums.txt
     if command -v cosign >/dev/null 2>&1; then
