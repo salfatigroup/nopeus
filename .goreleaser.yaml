@@ -16,6 +16,8 @@ builds:
   goarm:
     - "7"
   mod_timestamp: '{{ .CommitTimestamp }}'
+  dir: .
+  main: ./apps/cli
   flags:
     - -trimpath
   ldflags:
