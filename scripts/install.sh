@@ -1,42 +1,76 @@
-#!/bin/sh
-set -e
+#!/bin/bash -e
 
-if test "$DISTRIBUTION" = "pro"; then
-    echo "Installing nopeus pro 🎉"
-    RELEASES_URL="https://github.com/salfatigroup/nopeus/releases"
-    FILE_BASENAME="nopeus"
-else
-    echo "Only nopeus pro is supported at this time."
-    exit 1
-fi
+TOKEN="$NOPEUS_TOKEN"
+OWNER="salfatigroup"
+REPO="nopeus"
+VERSION="${VERSION:-latest}"
+FILE="nopeus_$(uname -s)_$(uname -m).tar.gz"
 
-test -z "$VERSION" && VERSION="$(curl -sfL -o /dev/null -w %{url_effective} -u elonsalfati:$NOPEUS_TOKEN "$RELEASES_URL/latest" |
-    rev |
-    cut -f1 -d'/'|
-    rev)"
-
-test -z "$VERSION" && {
-    echo "Unable to get nopeus version." >&2
-    exit 1
+function gh_curl() {
+  API_GITHUB="https://api.github.com"
+  curl ${TOKEN:+-H "Authorization: token $TOKEN"} \
+       -H "Accept: application/vnd.github.v3.raw" \
+       -s $API_GITHUB$@
 }
 
-test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
-export TAR_FILE="$TMPDIR/${FILE_BASENAME}_$(uname -s)_$(uname -m).tar.gz"
+function gh_get_file() {
+  file="$1"
+  version="$2"
+  asset_id=`gh_curl /repos/$OWNER/$REPO/releases/tags/$version | jq ".assets | map(select(.name == \"$file\"))[0].id"`
+  if [ "$asset_id" = "null" ]; then
+    >&2 echo -e "\033[31mERROR: \"$file\" not found at \"$version\"\033[0m"
+    return 1
+  fi
 
-(
-    cd "$TMPDIR"
-    echo "Downloading nopeus $VERSION..."
-    curl -sfLo "$TAR_FILE" "$RELEASES_URL/download/$VERSION/${FILE_BASENAME}_$(uname -s)_$(uname -m).tar.gz" -u elonsalfati:$NOPEUS_TOKEN
-    curl -sfLo "checksums.txt" "$RELEASES_URL/download/$VERSION/checksums.txt" -u elonsalfati:$NOPEUS_TOKEN
-    curl -sfLo "checksums.txt.sig" "$RELEASES_URL/download/$VERSION/checksums.txt.sig" -u elonsalfati:$NOPEUS_TOKEN
-    echo "Verifying checksums..."
-    sha256sum --ignore-missing --quiet --check checksums.txt
-    if command -v cosign >/dev/null 2>&1; then
-        echo "Verifying signatures..."
-        COSIGN_EXPERIMENTAL=1 cosign verify-blob \
-            --signature checksums.txt.sig \
-            checksums.txt
-    else
-        echo "Could not verify signatures, cosign is not installed."
+  wget -q --show-progress --auth-no-challenge --header='Accept:application/octet-stream' \
+    https://${TOKEN:+$TOKEN:@}api.github.com/repos/$OWNER/$REPO/releases/assets/$asset_id \
+    -O $file
+
+  return $?
+}
+
+if [ -z "$TOKEN" ]; then
+  >&2 echo -e "\033[33mWARNING: \$TOKEN is empty\033[0m"
+  exit 1
+fi
+
+if [ "$VERSION" = "latest" ]; then
+  VERSION=`gh_curl /repos/$OWNER/$REPO/releases/latest | jq --raw-output ".tag_name"`
+  echo "Latest version is \"$VERSION\""
+fi
+
+mkdir -p $REPO-$VERSION
+pushd $REPO-$VERSION > /dev/null
+
+# Start by getting the checksums if they are available.
+if ! gh_get_file checksums.txt $VERSION; then
+  >&2 echo -e "\033[33mWARNING: Checksums will NOT be computed\033[0m"
+fi
+
+if ! [ -z "$FILE" ]; then
+  if ! gh_get_file $FILE $VERSION; then
+    exit 1
+  fi
+
+  # Verify the sha256 sum for this file only.
+  grep "$FILE" checksums.txt | sha256sum --check
+else
+  release_id=`gh_curl /repos/$OWNER/$REPO/releases/tags/$VERSION | jq ".id"`
+  assets=`gh_curl /repos/$OWNER/$REPO/releases/$release_id/assets | jq --raw-output '.[].name'`
+  for asset in $assets; do
+    if ! [ "$asset" = "checksums.txt" ]; then
+      if ! gh_get_file $asset $VERSION; then
+        exit 1
+      fi
     fi
-)
+  done
+
+  # Verify the sha256 sum for all files.
+  sha256sum --check checksums.txt
+fi
+
+mkdir -p "$HOME/nopeus"
+tar -xf "$FILE" -C "$HOME/nopeus/"
+echo "nopeus binary is located under $HOME/nopeus/nopeus"
+
+popd > /dev/null
