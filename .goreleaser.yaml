@@ -1,9 +1,6 @@
 env:
   - GO111MODULE=on
 
-snapshot:
-  name_template: '{{ incpatch .Version }}-next'
-
 builds:
 - env:
     - CGO_ENABLED=0
@@ -72,16 +69,3 @@ archives:
     files:
       - README.md
       - LICENSE.md
-
-signs:
-- cmd: cosign
-  env:
-  - COSIGN_EXPERIMENTAL=1
-  certificate: '${artifact}.pem'
-  output: true
-  artifacts: checksum
-  args:
-    - sign-blob
-    - '--output-certificate=${certificate}'
-    - '--output-signature=${signature}'
-    - '${artifact}'
