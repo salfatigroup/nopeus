@@ -44,6 +44,12 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
         return err
     }
 
+    // unfold nopeus.state files
+    _ ,err := unfoldNopeusState(envName, envData, cfg);
+    if err != nil {
+        return err
+    }
+
     // deploy the application to the cloud
     if err := deployToCloud(envName, envData, cfg); err != nil {
         return err
@@ -73,6 +79,21 @@ func generateNopeusState(envName string, envData *config.EnvironmentConfig, cfg 
     // write the nopeus state to the root nopeus directory
     nopeusStateLocation := filepath.Join(cfg.Runtime.RootNopeusDir, "state", envName+".nopeus.state")
     if err := state.WriteNopeusState(nopeusStateLocation); err != nil {
+        return nil, err
+    }
+    return state, nil
+}
+
+// unfold the nopeus state files to the correct folders as a caching mechanism
+func unfoldNopeusState(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) (*cache.NopeusState, error) {
+    // get the nopeus state
+    nopeusStateLocation := filepath.Join(cfg.Runtime.RootNopeusDir, "state", envName+".nopeus.state")
+    state, err := cache.ReadNopeusState(nopeusStateLocation)
+    if err != nil {
+        return nil, err
+    }
+    // unfold the nopeus state
+    if err := state.UnfoldNopeusState(cfg); err != nil {
         return nil, err
     }
     return state, nil

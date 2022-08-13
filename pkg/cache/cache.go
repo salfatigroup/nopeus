@@ -53,6 +53,23 @@ func NewNopeusState(envName string, envData *config.EnvironmentConfig, cfg *conf
     return nopeusState, nil
 }
 
+// read the nopeus state from the given file path
+func ReadNopeusState(stateLocation string) (*NopeusState, error) {
+    // read the nopeus state file
+    file, err := ioutil.ReadFile(stateLocation)
+    if err != nil {
+        return nil, err
+    }
+
+    // unmarshal the json to the nopeus state object
+    state := &NopeusState{}
+    if err := json.Unmarshal(file, state); err != nil {
+        return nil, err
+    }
+
+    return state, nil
+}
+
 // write the list of nopeus states to the given location
 func (s *NopeusState) WriteNopeusState(location string) error {
     // marshal the nopeus state object to json
@@ -73,4 +90,18 @@ func (s *NopeusState) WriteNopeusState(location string) error {
 
     // write the json to the given location
     return ioutil.WriteFile(location, json, 0644)
+}
+
+// write the terraform state based on the nopeus state
+func (s *NopeusState) UnfoldNopeusState(cfg *config.NopeusConfig) error {
+    // get the tfstate file location
+    tfstateLocation := filepath.Join(
+        cfg.Runtime.TmpFileLocation,
+        s.CloudVendor,
+        s.EnvironmentName,
+        "terraform.tfstate",
+    )
+
+    // write the tfstate to the tfstate location using ioutil
+    return ioutil.WriteFile(tfstateLocation, []byte(s.TerraformState), 0644)
 }
