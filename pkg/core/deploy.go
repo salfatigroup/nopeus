@@ -36,8 +36,37 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
     fmt.Println(util.GrayText("Launching ") + util.GrayText(envName) + util.GrayText(" environment to the cloud"))
 
     // generate files
-    if err := generateFiles(envName, envData, cfg); err != nil {
-        return err
+    // in parallel, generate the terraform files and the k8s/helm charts and manifests
+    // and deploy the application to the cloud
+    var wg sync.WaitGroup
+    var err1 error
+    var err2 error
+
+    // generate the terraform files
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        if err1 = generateTerraformFiles(envName, envData, cfg); err1 != nil {
+            return
+        }
+    }()
+
+    // generate the k8s/helm charts and manifests
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        if err2 = generateK8sHelmCharts(envName, envData, cfg); err2 != nil {
+            return
+        }
+    }()
+    // wait for all the goroutines to finish
+    wg.Wait()
+
+    // validate errors from the goroutines
+    if err1 != nil {
+        return err1
+    } else if err2 != nil {
+        return err2
     }
 
     // get remote cache from nopeus cloud
@@ -106,43 +135,43 @@ func unfoldNopeusState(envName string, envData *config.EnvironmentConfig, cfg *c
     return state, nil
 }
 
-// generate the terraform and helm files in parallel
-func generateFiles(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
-    // in parallel, generate the terraform files and the k8s/helm charts and manifests
-    // and deploy the application to the cloud
-    var wg sync.WaitGroup
-    var err1 error
-    var err2 error
+// // generate the terraform and helm files in parallel
+// func generateFiles(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
+//     // in parallel, generate the terraform files and the k8s/helm charts and manifests
+//     // and deploy the application to the cloud
+//     var wg sync.WaitGroup
+//     var err1 error
+//     var err2 error
 
-    // generate the terraform files
-    wg.Add(1)
-    go func() {
-        defer wg.Done()
-        if err1 = generateTerraformFiles(envName, envData, cfg); err1 != nil {
-            return
-        }
-    }()
+//     // generate the terraform files
+//     wg.Add(1)
+//     go func() {
+//         defer wg.Done()
+//         if err1 = generateTerraformFiles(envName, envData, cfg); err1 != nil {
+//             return
+//         }
+//     }()
 
-    // generate the k8s/helm charts and manifests
-    wg.Add(1)
-    go func() {
-        defer wg.Done()
-        if err2 = generateK8sHelmCharts(envName, envData, cfg); err2 != nil {
-            return
-        }
-    }()
-    // wait for all the goroutines to finish
-    wg.Wait()
+//     // generate the k8s/helm charts and manifests
+//     wg.Add(1)
+//     go func() {
+//         defer wg.Done()
+//         if err2 = generateK8sHelmCharts(envName, envData, cfg); err2 != nil {
+//             return
+//         }
+//     }()
+//     // wait for all the goroutines to finish
+//     wg.Wait()
 
-    // validate errors from the goroutines
-    if err1 != nil {
-        return err1
-    } else if err2 != nil {
-        return err2
-    }
+//     // validate errors from the goroutines
+//     if err1 != nil {
+//         return err1
+//     } else if err2 != nil {
+//         return err2
+//     }
 
-    return nil
-}
+//     return nil
+// }
 
 // deployToCloud deploys the application to the cloud
 // based on the provided configurations, terraform files,
