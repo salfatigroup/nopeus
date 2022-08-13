@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -88,6 +89,12 @@ func generateNopeusState(envName string, envData *config.EnvironmentConfig, cfg 
 func unfoldNopeusState(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) (*cache.NopeusState, error) {
     // get the nopeus state
     nopeusStateLocation := filepath.Join(cfg.Runtime.RootNopeusDir, "state", envName+".nopeus.state")
+    // check if file exists
+    if _, err := os.Stat(nopeusStateLocation); os.IsNotExist(err) {
+        return nil, nil
+    }
+
+    // read the nopeus state and parse
     state, err := cache.ReadNopeusState(nopeusStateLocation)
     if err != nil {
         return nil, err
