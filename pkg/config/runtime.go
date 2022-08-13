@@ -57,8 +57,8 @@ type RuntimeConfig struct {
 // create a new instance of the runtime config with all the required default values
 func NewRuntimeConfig() *RuntimeConfig {
     // get the ~/.nopeus directory
-    homeDir, _ := os.UserHomeDir()
-    rootNopeusDir := filepath.Join(homeDir, ".nopeus")
+    currentDir, _ := os.Getwd()
+    rootNopeusDir := filepath.Join(currentDir, ".nopeus")
     terraformPath, err := exec.LookPath("terraform")
     if err != nil {
         fmt.Println(
@@ -81,7 +81,7 @@ func NewRuntimeConfig() *RuntimeConfig {
         RootNopeusDir: rootNopeusDir,
 
         // point temp file location to tmp dir
-        TmpFileLocation: filepath.Join(rootNopeusDir, "tmp"),
+        TmpFileLocation: filepath.Join(rootNopeusDir, "session"),
 
         // a hiddent command for debug purposes that stores
         // all the execution files in the tmp directory
@@ -162,6 +162,10 @@ func (c *NopeusConfig) Init() error {
 // define the nopeus config
 func (c *NopeusConfig) SetConfigPath(path string) {
     c.Runtime.ConfigPath = path
+    // side effect - update the root nopeus directory
+    rootNopeus := filepath.Join(filepath.Dir(path), ".nopeus")
+    c.Runtime.RootNopeusDir = rootNopeus
+    c.Runtime.TmpFileLocation = filepath.Join(rootNopeus, "session")
 }
 
 // Return the default nopeus config path

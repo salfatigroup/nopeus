@@ -2,8 +2,11 @@ package core
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/salfatigroup/nopeus/cache"
 	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 	"github.com/salfatigroup/nopeus/remote"
@@ -28,8 +31,55 @@ func Deploy(cfg *config.NopeusConfig) error {
 
 // deploy a single environment to the cloud
 func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
-    // notify
+    // notify the user
     fmt.Println(util.GrayText("Launching ") + util.GrayText(envName) + util.GrayText(" environment to the cloud"))
+
+    // generate files
+    if err := generateFiles(envName, envData, cfg); err != nil {
+        return err
+    }
+
+    // get remote cache from nopeus cloud
+    if err := getRemoteCache(envName, envData, cfg); err != nil {
+        return err
+    }
+
+    // deploy the application to the cloud
+    if err := deployToCloud(envName, envData, cfg); err != nil {
+        return err
+    }
+
+    // generate nopeus.state file
+    if _, err := generateNopeusState(envName, envData, cfg); err != nil {
+        return err
+    }
+
+    // remote caching to nopeus cloud
+    if err := setRemoteCache(envName, envData, cfg); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+// generate the terraform files and write them to the root nopeus directory
+func generateNopeusState(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) (*cache.NopeusState, error) {
+    // create the nopeus state
+    state, err := cache.NewNopeusState(envName, envData, cfg)
+    if err != nil {
+        return nil, err
+    }
+
+    // write the nopeus state to the root nopeus directory
+    nopeusStateLocation := filepath.Join(cfg.Runtime.RootNopeusDir, "state", envName+".nopeus.state")
+    if err := state.WriteNopeusState(nopeusStateLocation); err != nil {
+        return nil, err
+    }
+    return state, nil
+}
+
+// generate the terraform and helm files in parallel
+func generateFiles(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
     // in parallel, generate the terraform files and the k8s/helm charts and manifests
     // and deploy the application to the cloud
     var wg sync.WaitGroup
@@ -63,21 +113,6 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
         return err2
     }
 
-    // get remote cache from nopeus cloud
-    if err := getRemoteCache(envName, envData, cfg); err != nil {
-        return err
-    }
-
-    // deploy the application to the cloud
-    if err := deployToCloud(envName, envData, cfg); err != nil {
-        return err
-    }
-
-    // remote caching to nopeus cloud
-    if err := setRemoteCache(envName, envData, cfg); err != nil {
-        return err
-    }
-
     return nil
 }
 
@@ -92,7 +127,7 @@ func deployToCloud(envName string, envData *config.EnvironmentConfig, cfg *confi
 
     fmt.Println(
         "🚀",
-        util.GradientText("[NOPEUS::MAX-Q::" + envName +"]", "#db2777", "#f9a8d4"),
+        util.GradientText("[NOPEUS::MAX-Q::" + strings.ToUpper(envName) +"]", "#db2777", "#f9a8d4"),
         "- applying the cloud configurations",
     )
 
