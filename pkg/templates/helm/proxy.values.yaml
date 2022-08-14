@@ -19,7 +19,7 @@ ingress_map:
   namespace: {{ $ingress.Namespace }}
   upstream: {{ $ingress.ServiceName }}
   port: {{ $ingress.Port }}
-{{- end }}
+{{ end }}
 {{- end }}
 {{- end }}
 {{- end -}}

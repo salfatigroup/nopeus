@@ -11,6 +11,7 @@ import (
 
 // define the nopeus state object
 type NopeusState struct {
+    Name string `json:"name"`
     EnvironmentName string `json:"environment"`
     CloudVendor string `json:"cloud_vendor"`
     TerraformState string `json:"terraform_state"`
@@ -44,6 +45,7 @@ func NewNopeusState(envName string, envData *config.EnvironmentConfig, cfg *conf
 
     // create the nopeus state object
     nopeusState := &NopeusState{
+        Name: cfg.CAL.GetName() + "-" + envName,
         EnvironmentName: envName,
         CloudVendor: cfg.CAL.CloudVendor,
         TerraformState: tfstate,

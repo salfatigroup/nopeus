@@ -86,12 +86,13 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
     }
 
     // generate nopeus.state file
-    if _, err := generateNopeusState(envName, envData, cfg); err != nil {
+    newstate, err := generateNopeusState(envName, envData, cfg);
+    if err != nil {
         return err
     }
 
     // remote caching to nopeus cloud
-    if err := setRemoteCache(envName, envData, cfg); err != nil {
+    if err := setRemoteCache(cfg, newstate); err != nil {
         return err
     }
 
@@ -196,7 +197,7 @@ func deployToCloud(envName string, envData *config.EnvironmentConfig, cfg *confi
     return nil
 }
 
-func setRemoteCache(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
+func setRemoteCache(cfg *config.NopeusConfig, state *cache.NopeusState) error {
     // create remote session if token is provided
     if cfg.Runtime.NopeusCloudToken != "" {
         session, err := remote.NewRemoteSession(cfg.Runtime.NopeusCloudToken)
@@ -205,7 +206,7 @@ func setRemoteCache(envName string, envData *config.EnvironmentConfig, cfg *conf
         }
 
         // remote caching
-        if err := session.SetRemoteCache(cfg, envName); err != nil {
+        if err := session.SetRemoteCache(cfg, state); err != nil {
             return err
         }
     }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/joho/godotenv"
+	"github.com/salfatigroup/nopeus/cache"
 	"github.com/salfatigroup/nopeus/config"
 )
 
@@ -71,7 +72,13 @@ func TestSetRemoteCache(t *testing.T) {
     }
 
     // call SetRemoteCache to upload a file to the nopeus cloud server
-    err = session.SetRemoteCache(cfg, "prod")
+    err = session.SetRemoteCache(cfg, &cache.NopeusState{
+        Name: "nopeus-prod",
+        EnvironmentName: "prod",
+        CloudVendor: cfg.CAL.CloudVendor,
+        TerraformState: "tfstate",
+        DeployedServices: []string{"service1", "service2"},
+    })
     if err != nil {
         t.Errorf("error setting remote cache: %s", err)
         return

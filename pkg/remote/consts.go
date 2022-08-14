@@ -3,7 +3,7 @@ package remote
 import "os"
 
 var (
-    NOPEUSCLOUD_API_BASE_URL = "https://api.nopeus.salfati.group"
+    NOPEUSCLOUD_API_BASE_URL = "https://api.salfati.group"
 )
 
 func init() {

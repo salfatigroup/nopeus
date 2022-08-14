@@ -31,7 +31,7 @@ func (session *RemoteSession) Authenticate() error {
     // create a new request
     req, err := http.NewRequest(
         "POST",
-        NOPEUSCLOUD_API_BASE_URL+"/licenses/v1/verify",
+        NOPEUSCLOUD_API_BASE_URL+"/api/licenses/v1/verify",
         bytes.NewBuffer(reqBody),
     )
     if err != nil {

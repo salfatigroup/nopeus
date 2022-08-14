@@ -2,39 +2,31 @@ package remote
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"mime/multipart"
 	"net/http"
+	"path/filepath"
 
+	"github.com/salfatigroup/nopeus/cache"
 	"github.com/salfatigroup/nopeus/config"
 )
 
 const (
-    NOPEUS_CLOUD_ARTIFACTS_URI = "/artifacts/v1"
-)
-
-var (
-    FILES_TO_CACHE = []string{
-        "terraform.tfstate",
-    }
+    NOPEUS_CLOUD_ARTIFACTS_URI = "/api/artifacts/v1/state"
 )
 
 // upload each file in FILES_TO_CACHE from the tmp runtime
 // directory to the nopeus cloud server.
-func (s *RemoteSession) SetRemoteCache(cfg *config.NopeusConfig, envName string) error {
+func (s *RemoteSession) SetRemoteCache(cfg *config.NopeusConfig, newstate *cache.NopeusState) error {
     // check if token has been verified and authorized in the client
     // to reduce http requests
     if !s.tokenVerified {
         return fmt.Errorf("token not verified")
     }
 
-    // for each file in FILES_TO_CACHE, upload it to the nopeus cloud server
-    // at the NOPEUS_CLOUD_ARTIFACTS_URI
-    for _, file := range FILES_TO_CACHE {
-        if err := s.uploadFile(cfg, file, envName); err != nil {
-            return err
-        }
+    // upload the new state object
+    if err := s.uploadFile(cfg, newstate); err != nil {
+        return err
     }
 
     return nil
@@ -51,12 +43,9 @@ func (s *RemoteSession) GetRemoteCache(envName string) error {
     // get the config
     cfg := config.GetNopeusConfig()
 
-    // for each file in FILES_TO_CACHE, download it from nopeus cloud server
-    // to the tmp runtime directory
-    for _, file := range FILES_TO_CACHE {
-        if err := s.downloadFile(cfg, file, envName); err != nil {
-            return err
-        }
+    // get the remote state based on the stack name
+    if err := s.downloadFile(cfg, envName); err != nil {
+        return err
     }
 
     return nil
@@ -74,60 +63,26 @@ func (s *RemoteSession) UnlockRemoteState() error {
     return nil
 }
 
-// upload a file to nopeus artifact storage
-// each request to nopeus cloud should have:
-// 1. The token in the Authorization header
-// 2. Upload the multipart form data with the file
-// 3. Contain the `type` and `name` of the file in the form data
-func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, file string, envName string) error {
-    cloudVendor, err := cfg.CAL.GetCloudVendor()
+// create a nopeus state object in salfati group cloud
+func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, newstate *cache.NopeusState) error {
+    endpoint := NOPEUSCLOUD_API_BASE_URL + NOPEUS_CLOUD_ARTIFACTS_URI
+
+    // convert newstate to a json string
+    body, err := json.Marshal(newstate)
     if err != nil {
         return err
     }
-
-    // get the file from the tmp directory
-    filePath := cfg.Runtime.TmpFileLocation + "/" + cloudVendor + "/" + envName +"/" + file
-    fileBytes, err := ioutil.ReadFile(filePath)
-    if err != nil {
-        return err
-    }
-
-    // create the multipart form data
-    var buf bytes.Buffer
-    w := multipart.NewWriter(&buf)
-
-    // update the file name and file type in the form data
-    if err := w.WriteField("type", "tfstate"); err != nil {
-        return err
-    }
-
-    if err := w.WriteField("name", envName + "-" + file); err != nil {
-        return err
-    }
-
-    fw, err := w.CreateFormFile("file", file)
-    if err != nil {
-        return err
-    }
-
-    // write the file to the multipart form data
-    _, err = fw.Write(fileBytes)
-    if err != nil {
-        return err
-    }
-
-    // close the multipart form data
-    w.Close()
 
     // create the http request
-    req, err := http.NewRequest("POST", NOPEUSCLOUD_API_BASE_URL+NOPEUS_CLOUD_ARTIFACTS_URI, &buf)
+    req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
     if err != nil {
         return err
     }
 
     // set the authorization header
     req.Header.Set("Authorization", "Token "+s.token)
-    req.Header.Set("Content-Type", w.FormDataContentType())
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Accept", "application/json")
 
     // send the request to the nopeus cloud server
     client := &http.Client{}
@@ -141,16 +96,18 @@ func (s *RemoteSession) uploadFile(cfg *config.NopeusConfig, file string, envNam
 
     // check the response status code
     if resp.StatusCode != 200 {
-        return fmt.Errorf("unable to upload file to nopeus cloud")
+        return fmt.Errorf("failed to upload state to the remote nopeus cloud server")
     }
 
     return nil
 }
 
 // download a file from nopeus artifact storage
-func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, file string, envName string) error {
+func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, envName string) error {
+    // define the endpoint
+    endpoint := NOPEUSCLOUD_API_BASE_URL + NOPEUS_CLOUD_ARTIFACTS_URI + "/" + cfg.CAL.GetName() + "-" + envName
+
     // create the http request
-    endpoint := NOPEUSCLOUD_API_BASE_URL + NOPEUS_CLOUD_ARTIFACTS_URI + "/" + envName + "-" + file
     req, err := http.NewRequest("GET", endpoint, nil)
     if err != nil {
         return err
@@ -158,6 +115,8 @@ func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, file string, envN
 
     // set the authorization header
     req.Header.Set("Authorization", "Token "+s.token)
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Accept", "application/json")
 
     // send the request to the nopeus cloud server
     client := &http.Client{}
@@ -169,28 +128,25 @@ func (s *RemoteSession) downloadFile(cfg *config.NopeusConfig, file string, envN
     // close the response body
     defer resp.Body.Close()
 
-    // check the response status code
+    // ignore 404s as state is not required to be found
     if resp.StatusCode == 404 {
         return nil
-    } else if resp.StatusCode != 200 {
-        return fmt.Errorf("unable to download file from nopeus cloud")
     }
 
-    // get the file from the response body
-    // and write it to the tmp runtime directory
-    fileBytes, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
+    // check the response status code
+    if resp.StatusCode != 200 {
+        return fmt.Errorf("failed to download state from the remote nopeus cloud server")
+    }
+
+    // decode the response body
+    var state cache.NopeusState
+    if err := json.NewDecoder(resp.Body).Decode(&state); err != nil {
         return err
     }
 
-    cloudVendor, err := cfg.CAL.GetCloudVendor()
-    if err != nil {
-        return err
-    }
-
-    filePath := cfg.Runtime.TmpFileLocation + "/" + cloudVendor + "/" + envName +"/" + file
-    err = ioutil.WriteFile(filePath, fileBytes, 0644)
-    if err != nil {
+    // write the state to the local file
+    nopeusStateLocation := filepath.Join(cfg.Runtime.RootNopeusDir, "state", envName+".nopeus.state")
+    if err := state.WriteNopeusState(nopeusStateLocation); err != nil {
         return err
     }
 

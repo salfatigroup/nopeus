@@ -16,3 +16,6 @@
 
 # build outputs
 dist
+
+# nopeus output files
+.nopeus
