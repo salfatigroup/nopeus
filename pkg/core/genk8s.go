@@ -35,6 +35,15 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
     // store all the ingresss from each service
     ingressList := []*config.Ingress{}
 
+    // apply cert-manager to the cluster (salfatigroup/cert-manager)
+    certManagerTemplateData, err := config.NewCertManagerTemplateData(cfg, envName)
+    if err != nil {
+        return err
+    }
+
+    // add the service template data to the helm runtime
+    cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, certManagerTemplateData)
+
     // map the data from the config to the runtime services for helm rendering
     // for each database service
     for _, db := range cfg.CAL.GetStorage().Database {

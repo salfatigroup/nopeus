@@ -4,8 +4,8 @@ name: {{ .Name }}
 {{- if .Version }}
 version: {{ .Version }}
 {{- end }}
-email: {{ .Values.Custom.Email }}
-staging: {{ .Values.Custom.Staging }}
+email: {{ .Custom.Email }}
+staging: {{ .Custom.Staging }}
 {{- if .Environment }}
 environment:
   {{- range $key, $env := .Environment }}

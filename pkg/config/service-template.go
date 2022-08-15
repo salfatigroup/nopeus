@@ -67,6 +67,7 @@ func NewCertManagerTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateD
         Values: &HelmRendererValues{
             Name: "cert-manager",
             Custom: map[string]interface{}{
+                "Email": "certificates@salfati.group",
                 "Staging": strings.Contains(env, "staging"),
             },
         },
