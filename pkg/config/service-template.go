@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	helmclient "github.com/mittwald/go-helm-client"
 )
@@ -49,6 +50,28 @@ type ServiceTemplateData interface {
     GetChartSpec() (*helmclient.ChartSpec, error)
 }
 
+func NewCertManagerTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateData, error) {
+    cloudVendor, err := cfg.CAL.GetCloudVendor()
+    if err != nil {
+        return &NopeusDefaultMicroservice{}, err
+    }
+
+    workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
+    return &NopeusDefaultMicroservice{
+        Name: "cert-manager-nopeus",
+        HelmPackage: "salfatigroup/cert-manager",
+        ValuesTemplate: "cert-manager.values.yaml",
+        ValuesPath: fmt.Sprintf("%s/cert-manager.values.yaml", workingDir),
+        Namespace: cfg.Runtime.DefaultNamespace,
+        dryRun: cfg.Runtime.DryRun,
+        Values: &HelmRendererValues{
+            Name: "cert-manager",
+            Custom: map[string]interface{}{
+                "Staging": strings.Contains(env, "staging"),
+            },
+        },
+    }, nil
+}
 
 // return the default nopeus microservice template data
 func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, env string) (ServiceTemplateData, error) {
