@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/salfatigroup/gologsnag"
 	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 	"github.com/salfatigroup/nopeus/core"
+	"github.com/salfatigroup/nopeus/logger"
 	"github.com/salfatigroup/nopeus/remote"
 	"github.com/spf13/cobra"
 )
@@ -22,9 +24,6 @@ var (
 func init() {
 	// get global config
 	cfg := config.GetNopeusConfig()
-
-	// init command after user argument is defined
-	// cobra.OnInitialize(initConfig)
 
 	// define the liftoff flags
 	liftoffCmd.Flags().StringVarP(&configPath, "config", "c", "", "Path to config file. Defaults to $( pwd )/nopeus.yaml")
@@ -65,6 +64,8 @@ func liftoff(cmd *cobra.Command, args []string) {
 		"- deploying your application to the cloud",
 	)
 	if err := core.Deploy(cfg); err != nil {
+		logger.Publish(&gologsnag.PublishOptions{Event: "error", Description: err.Error(), Tags: &gologsnag.Tags{"func": "liftoff"}})
+		logger.Errorf("Failed to deploy application: %+v", err)
 		fmt.Println(
 			"💥",
 			util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
@@ -79,10 +80,14 @@ func liftoff(cmd *cobra.Command, args []string) {
 		util.GradientText("[NOPEUS::MECO]", "#db2777", "#f9a8d4"),
 		"- your application is securely deployed to the cloud",
 	)
+	logger.Debug("Liftoff command finished")
+	logger.Publish(&gologsnag.PublishOptions{Event: "liftoff-finished", Icon: "🎉"})
 }
 
 // apply the provided user argument to the configs
 func initConfig() {
+	logger.Publish(&gologsnag.PublishOptions{Event: "liftoff"})
+	logger.Debug("Liftoff command called")
 	cfg := config.GetNopeusConfig()
 
 	// apply the config path to the config
@@ -92,9 +97,12 @@ func initConfig() {
 
 	// create remote session if token is provided
 	if cfg.Runtime.NopeusCloudToken != "" {
+		logger.Debug("Found nopeus token, creating remote session client")
 		// verify the token now to prevent any errors later
 		_, err := remote.NewRemoteSession(cfg.Runtime.NopeusCloudToken)
 		if err != nil {
+			logger.Publish(&gologsnag.PublishOptions{Event: "error", Description: err.Error(), Tags: &gologsnag.Tags{"func": "initConfig"}})
+			logger.Errorf("Failed to create remote session: %+v", err)
 			fmt.Println(
 				"💥",
 				util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
@@ -107,6 +115,8 @@ func initConfig() {
 
 	// initialize configs
 	if err := cfg.Init(); err != nil {
+		logger.Publish(&gologsnag.PublishOptions{Event: "error", Description: err.Error(), Tags: &gologsnag.Tags{"func": "initConfig"}})
+		logger.Errorf("Failed to initialize configs: %+v", err)
 		fmt.Println(
 			"💥",
 			util.GradientText("[NOPEUS::TERMINATE]", "#db2777", "#f9a8d4"),
@@ -115,4 +125,7 @@ func initConfig() {
 		)
 		os.Exit(1)
 	}
+
+	logger.Publish(&gologsnag.PublishOptions{Event: "liftoff-config-initialized"})
+	logger.Debug("Configs initialized")
 }

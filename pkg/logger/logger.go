@@ -86,6 +86,10 @@ func WithField(key string, value interface{}) *logrus.Entry {
 	return log.WithField(key, value)
 }
 
+func WithFields(fields logrus.Fields) *logrus.Entry {
+	return log.WithFields(fields)
+}
+
 // export the different log levels logging functions
 // and the format logging functions
 func Trace(args ...interface{}) {
@@ -144,8 +148,12 @@ func Panicf(format string, args ...interface{}) {
 	log.Panicf(format, args...)
 }
 
+type PublishError struct {
+	Error error `json:"error"`
+}
+
 // export the logsnag publish function
-func Publish(options *gologsnag.PublishOptions) error {
+func Publish(options *gologsnag.PublishOptions) *PublishError {
 	ctx := context.Background()
 
 	// disable notifications for public notifications
@@ -158,5 +166,8 @@ func Publish(options *gologsnag.PublishOptions) error {
 	options.Channel = "nopeus-public"
 
 	// publish the logsnag message
-	return logsnag.Publish(ctx, options)
+	err := logsnag.Publish(ctx, options)
+	return &PublishError{
+		Error: err,
+	}
 }
