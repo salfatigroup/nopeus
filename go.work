@@ -5,6 +5,7 @@ use (
 	./pkg/cache
 	./pkg/config
 	./pkg/core
+	./pkg/logger
 	./pkg/remote
 	./pkg/templates
 )
