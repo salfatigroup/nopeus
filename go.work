@@ -5,6 +5,8 @@ use (
 	./pkg/cache
 	./pkg/config
 	./pkg/core
+	./pkg/helm
+	./pkg/kubernetes
 	./pkg/logger
 	./pkg/remote
 	./pkg/templates

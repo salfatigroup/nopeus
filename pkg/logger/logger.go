@@ -15,14 +15,11 @@ var (
 )
 
 // define a global session id to identify the flow
-var sessionID string
+var sessionID = uuid.Must(uuid.NewV4()).String()
 
 // initialize the logger with the reuiqred
 // log level and format
 func init() {
-	// init session id
-	sessionID = uuid.Must(uuid.NewV4()).String()
-
 	initLogrusLogger()
 	initLogsnagLogger()
 }
@@ -154,20 +151,41 @@ type PublishError struct {
 
 // export the logsnag publish function
 func Publish(options *gologsnag.PublishOptions) *PublishError {
-	ctx := context.Background()
+	if os.Getenv("GO_ENV") != "development" {
+		ctx := context.Background()
 
-	// disable notifications for public notifications
-	options.Notify = false
+		// if tags do not exists, init empty tags
+		if options.Tags == nil {
+			options.Tags = &gologsnag.Tags{}
+		}
 
-	// extend the tags with the session id
-	options.Tags.Add("session-id", sessionID)
+		// extend the tags with the session id
+		options.Tags.Add("session-id", sessionID)
 
-	// force the channel to be "nopeus-public"
-	options.Channel = "nopeus-public"
+		// force the channel to be "nopeus-public"
+		options.Channel = "nopeus-public"
 
-	// publish the logsnag message
-	err := logsnag.Publish(ctx, options)
-	return &PublishError{
-		Error: err,
+		// publish the logsnag message
+		err := logsnag.Publish(ctx, options)
+		return &PublishError{
+			Error: err,
+		}
 	}
+
+	return nil
+}
+
+// export the logsnag insight function
+func Insight(options *gologsnag.InsightOptions) *PublishError {
+	if os.Getenv("GO_ENV") != "development" {
+		ctx := context.Background()
+
+		// send an insight to logsnag
+		err := logsnag.Insight(ctx, options)
+		return &PublishError{
+			Error: err,
+		}
+	}
+
+	return nil
 }

@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/charmbracelet/lipgloss v0.5.0
+	github.com/salfatigroup/gologsnag v0.1.2
 	github.com/spf13/cobra v1.5.0
 	gopkg.in/go-playground/colors.v1 v1.2.0
 )

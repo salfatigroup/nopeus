@@ -6,6 +6,7 @@ github.com/mattn/go-runewidth v0.0.13 h1:lTGmDsbAYt5DmK6OnoV7EuIF1wEIFAcxld6ypU4
 github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 h1:y1p/ycavWjGT9FnmSjdbWUlLGvcxrY0Rw3ATltrxOhk=
 github.com/muesli/termenv v0.11.1-0.20220204035834-5ac8409525e0 h1:STjmj0uFfRryL9fzRA/OupNppeAID6QJYPMavTL7jtY=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
+github.com/salfatigroup/gologsnag v0.1.2 h1:lnsH/GyDqDuUGaQvlXqOez/XCi8JoiTUdT/Rqg+ravk=
 github.com/spf13/cobra v1.5.0 h1:X+jTBEBqF0bHN+9cSMgmfuvv2VHJ9ezmFNf9Y/XstYU=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
 golang.org/x/sys v0.0.0-20220731174439-a90be440212d h1:Sv5ogFZatcgIMMtBSTTAgMYsicp25MXBubjXNDKwm80=

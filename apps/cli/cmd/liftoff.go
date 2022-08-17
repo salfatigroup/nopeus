@@ -81,7 +81,7 @@ func liftoff(cmd *cobra.Command, args []string) {
 		"- your application is securely deployed to the cloud",
 	)
 	logger.Debug("Liftoff command finished")
-	logger.Publish(&gologsnag.PublishOptions{Event: "liftoff-finished", Icon: "🎉"})
+	logger.Publish(&gologsnag.PublishOptions{Event: "liftoff-finished", Icon: "🎉", Notify: true})
 }
 
 // apply the provided user argument to the configs

@@ -29,6 +29,9 @@ func Deploy(cfg *config.NopeusConfig) error {
 		if err := deployEnvironment(envName, envData, cfg); err != nil {
 			return err
 		}
+
+		logger.Insight(&gologsnag.InsightOptions{Title: "deployments-by-nopeus", Value: 1, Icon: "🛰️"})
+		logger.Insight(&gologsnag.InsightOptions{Title: "deployed-apps", Value: len(cfg.CAL.Services), Icon: "🚀"})
 	}
 
 	return nil
