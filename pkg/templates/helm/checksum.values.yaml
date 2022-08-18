@@ -1,0 +1,6 @@
+{{- if .Custom.Checksum }}
+checksum:
+  {{- range $app, $hash := .Custom.Checksum }}
+  "{{ $app }}": "{{ $hash }}"
+  {{- end }}
+{{- end }}

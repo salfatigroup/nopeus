@@ -77,10 +77,12 @@ resource "aws_eks_node_group" "aws-cluster-node-{{ .Name }}-{{ .Environment }}" 
   node_group_name = "${aws_eks_cluster.aws-cluster-{{ .Name }}-{{ .Environment }}.name}-node"
   node_role_arn   = aws_iam_role.aws-node-iam-{{ .Name }}-{{ .Environment }}.arn
   subnet_ids      = aws_subnet.aws-subnet-{{ .Name }}-{{ .Environment }}[*].id
+  disk_size = 50
+  instance_types = ["c5.xlarge"]
 
   scaling_config {
-    desired_size = 2
-    max_size     = 6
+    desired_size = 1
+    max_size     = 2
     min_size     = 1
   }
 

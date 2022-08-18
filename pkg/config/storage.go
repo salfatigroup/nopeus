@@ -1,7 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/gob"
 	"fmt"
 	"os"
 	"time"
@@ -155,4 +158,14 @@ func (n *NopeusStorageMicroservice) DeleteHelmChart(kubeContext string) error {
 
 	// delete the chart
 	return helmClient.Client.UninstallRelease(chartSpec)
+}
+
+// implement the get checksum function
+func (n *NopeusStorageMicroservice) GetChecksum() (string, error) {
+	var b bytes.Buffer
+	if err := gob.NewEncoder(&b).Encode(n); err != nil {
+		return "", err
+	}
+	sha256sum := sha256.Sum256(b.Bytes())
+	return fmt.Sprintf("%x", sha256sum), nil
 }

@@ -54,6 +54,9 @@ type ServiceTemplateData interface {
 
 	// delete the current helm chart form the cluster
 	DeleteHelmChart(kubeContext string) error
+
+	// returns the service checksum
+	GetChecksum() (string, error)
 }
 
 func NewCertManagerTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateData, error) {
@@ -133,6 +136,34 @@ func NewDatabaseServiceTemplateData(cfg *NopeusConfig, db *DatabaseStorage, env 
 			Name:    db.Name,
 			Image:   dbImage,
 			Version: db.Version,
+		},
+	}, nil
+}
+
+// append the checksum chart as a new template data item
+func NewChecksumTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateData, error) {
+	cloudVendor, err := cfg.CAL.GetCloudVendor()
+	if err != nil {
+		return &NopeusDefaultMicroservice{}, err
+	}
+
+	checksumMap, err := generateChecksumMap(cfg.Runtime.HelmRuntime.ServiceTemplateData)
+	if err != nil {
+		return &NopeusDefaultMicroservice{}, err
+	}
+
+	workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
+	return &NopeusDefaultMicroservice{
+		Name:           "checksum",
+		HelmPackage:    "salfatigroup/checksum",
+		ValuesTemplate: "checksum.values.yaml",
+		ValuesPath:     fmt.Sprintf("%s/checksum.values.yaml", workingDir),
+		Namespace:      "nopeus",
+		dryRun:         cfg.Runtime.DryRun,
+		Values: &HelmRendererValues{
+			Custom: map[string]interface{}{
+				"Checksum": checksumMap,
+			},
 		},
 	}, nil
 }

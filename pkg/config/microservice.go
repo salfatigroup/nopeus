@@ -1,7 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/gob"
 	"fmt"
 	"os"
 	"time"
@@ -20,7 +23,7 @@ type NopeusDefaultMicroservice struct {
 	ValuesPath     string              `yaml:"values_path"`
 	Values         *HelmRendererValues `yaml:"values"`
 	Namespace      string              `yaml:"namespace"`
-	dryRun         bool                `yaml:"dry_run"`
+	dryRun         bool                `yaml:"-"`
 }
 
 // return the name of the service
@@ -118,4 +121,14 @@ func (m *NopeusDefaultMicroservice) DeleteHelmChart(kubeContext string) error {
 
 	// delete the chart
 	return helmClient.Client.UninstallRelease(chartSpec)
+}
+
+// return the checksum of the service
+func (m *NopeusDefaultMicroservice) GetChecksum() (string, error) {
+	var b bytes.Buffer
+	if err := gob.NewEncoder(&b).Encode(m); err != nil {
+		return "", err
+	}
+	sha256sum := sha256.Sum256(b.Bytes())
+	return fmt.Sprintf("%x", sha256sum), nil
 }
