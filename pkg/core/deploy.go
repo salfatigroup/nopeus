@@ -20,6 +20,11 @@ import (
 func Deploy(cfg *config.NopeusConfig) error {
 	// in parallel deploy all the environments
 	for envName, envData := range cfg.CAL.GetEnvironments() {
+		// load the environment variables for this deployment
+		if err := envData.LoadEnvironmentFile(filepath.Dir(cfg.Runtime.ConfigPath)); err != nil {
+			return err
+		}
+
 		logger.Debugf("Deploying environment %s", envName)
 		logger.Publish(&gologsnag.PublishOptions{Event: "deploy", Description: "Deploying environment " + envName})
 		// NOTE: unable to parallelize this loop because I'm using

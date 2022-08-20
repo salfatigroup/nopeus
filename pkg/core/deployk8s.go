@@ -13,6 +13,7 @@ import (
 	"github.com/salfatigroup/nopeus/config"
 	"github.com/salfatigroup/nopeus/helm"
 	sgck "github.com/salfatigroup/nopeus/kubernetes"
+	"github.com/salfatigroup/nopeus/logger"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +40,14 @@ func runK8s(envName string, envData *config.EnvironmentConfig, cfg *config.Nopeu
 	} else {
 		kubeContext, err := connectToCluster(cfg, envName, envData)
 		if err != nil {
+			return err
+		}
+
+		// the the kubecontext onto the environment
+		envData.SetKubeContext(kubeContext)
+
+		// load the checksum map onto the envData
+		if err := envData.LoadChecksumMap(); err != nil {
 			return err
 		}
 
@@ -120,6 +129,16 @@ func createPrivateRegistrySecrets(cfg *config.NopeusConfig, envName string, envD
 }
 
 func manualHelmCommands(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) error {
+	// check if cert manager exists before installing again
+	if helmClient, err := helm.NewHelmClient("cert-manager", kubeContext); err != nil {
+		return err
+	} else {
+		if release, err := helmClient.GetChartByName("cert-manager"); err == nil && release != nil {
+			logger.Debugf("Found existing cert-manager release, skipping install")
+			return nil
+		}
+	}
+
 	// install cert-manager manually
 	fmt.Println(util.GrayText("Installing cert-manager..."))
 
@@ -139,11 +158,28 @@ func manualHelmCommands(cfg *config.NopeusConfig, envName string, envData *confi
 	)
 }
 
-func applyK8sHelmCharts(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) (err error) {
+func applyK8sHelmCharts(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) error {
 	// apply the helm charts for the environment
 	for _, service := range cfg.Runtime.HelmRuntime.ServiceTemplateData {
-		if err = service.ApplyHelmChart(kubeContext); err != nil {
-			return
+		// compare service checksum to the checksum map
+		// and skip if the same
+		serviceChecksum, err := service.GetChecksum()
+		if err != nil {
+			return err
+		}
+
+		logger.Debugf("serviceChecksum: %s", serviceChecksum)
+		logger.Debugf("service values: %+v", service)
+		logger.Debugf("service helm values: %+v", service.GetHelmValues())
+
+		logger.Debugf("envData checksum: %s", envData.GetChecksum(service.GetName()))
+		if serviceChecksum == envData.GetChecksum(service.GetName()) {
+			fmt.Println(util.GrayText("Skipping service " + service.GetName() + " because it is up to date"))
+			continue
+		}
+
+		if err := service.ApplyHelmChart(kubeContext); err != nil {
+			return err
 		}
 	}
 

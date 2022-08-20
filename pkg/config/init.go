@@ -9,4 +9,5 @@ func init() {
 	gob.Register([]*IngressPath{})
 	gob.Register([]*Ingress{})
 	gob.Register(&NopeusDefaultMicroservice{})
+	gob.Register(map[string]string{})
 }
