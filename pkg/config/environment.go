@@ -47,6 +47,7 @@ func (i *EnvironmentConfig) LoadEnvironmentFile(basepath string) error {
 	file := filepath.Join(basepath, i.EnvFileLocation)
 	logger.Debugf("Loading environment file %s", file)
 
+	// load the dotenv files if they exists
 	return godotenv.Load(file)
 }
 

@@ -3,7 +3,7 @@ package config
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
+	"crypto/md5"
 	"encoding/gob"
 	"fmt"
 	"os"
@@ -166,6 +166,6 @@ func (n *NopeusStorageMicroservice) GetChecksum() (string, error) {
 	if err := gob.NewEncoder(&b).Encode(n); err != nil {
 		return "", err
 	}
-	sha256sum := sha256.Sum256(b.Bytes())
-	return fmt.Sprintf("%x", sha256sum), nil
+	md5sum := md5.Sum(b.Bytes())
+	return fmt.Sprintf("%x", md5sum), nil
 }

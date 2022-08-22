@@ -84,7 +84,7 @@ func NewCertManagerTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateD
 }
 
 // return the default nopeus microservice template data
-func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, env string) (ServiceTemplateData, error) {
+func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, env string, envData *EnvironmentConfig) (ServiceTemplateData, error) {
 	cloudVendor, err := cfg.CAL.GetCloudVendor()
 	if err != nil {
 		return &NopeusDefaultMicroservice{}, nil
@@ -102,7 +102,7 @@ func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, en
 			Name:        name,
 			Image:       service.GetImage(),
 			Version:     service.GetVersion(),
-			Environment: service.GetEnvironmentVariables(),
+			Environment: service.GetEnvironmentVariables(env),
 			Custom: map[string]interface{}{
 				"ImagePullSecret": "dockerconfig",
 				"Replicas":        service.GetReplicas(),

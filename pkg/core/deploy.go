@@ -25,6 +25,11 @@ func Deploy(cfg *config.NopeusConfig) error {
 			return err
 		}
 
+		// parse the environment variables for the services in this environment
+		if err := parseServiceVariables(cfg, envName); err != nil {
+			return err
+		}
+
 		logger.Debugf("Deploying environment %s", envName)
 		logger.Publish(&gologsnag.PublishOptions{Event: "deploy", Description: "Deploying environment " + envName})
 		// NOTE: unable to parallelize this loop because I'm using
@@ -37,6 +42,23 @@ func Deploy(cfg *config.NopeusConfig) error {
 
 		logger.Insight(&gologsnag.InsightOptions{Title: "deployments-by-nopeus", Value: 1, Icon: "🛰️"})
 		logger.Insight(&gologsnag.InsightOptions{Title: "deployed-apps", Value: len(cfg.CAL.Services), Icon: "🚀"})
+	}
+
+	return nil
+}
+
+// parse the environment variables per service for this environment
+func parseServiceVariables(cfg *config.NopeusConfig, envName string) error {
+	// parse environment variables for every service per environment
+	services, err := cfg.CAL.GetServices()
+	if err != nil {
+		return err
+	}
+
+	for _, service := range services {
+		if err := service.ParseEnvironmentVariables(envName); err != nil {
+			return err
+		}
 	}
 
 	return nil

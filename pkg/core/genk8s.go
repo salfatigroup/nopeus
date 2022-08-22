@@ -63,7 +63,7 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 	}
 	for serviceName, service := range services {
 		// create a new service template data
-		serviceTemplateData, err := config.NewServiceTemplateData(cfg, serviceName, service, envName)
+		serviceTemplateData, err := config.NewServiceTemplateData(cfg, serviceName, service, envName, envData)
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 			// to the root CAL config
 			service.Ingress.ServiceName = serviceName
 			service.Ingress.Namespace = cfg.Runtime.DefaultNamespace
-			if service.EnvironmentVariables["PORT"] != "" {
+			if service.GetEnvironmentVariables(envName)["PORT"] != "" {
 				port, err := strconv.Atoi(service.EnvironmentVariables["PORT"])
 				if err != nil {
 					return err
@@ -90,7 +90,7 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 
 		// add the DATABASE_URL to each service for each storage
 		for _, db := range cfg.CAL.GetStorage().Database {
-			service.EnvironmentVariables["STORAGE_DATABASE_URL"] = db.Name
+			service.AddEnvironmentVariable("STORAGE_DATABASE_URL", db.Name, envName)
 		}
 	}
 
