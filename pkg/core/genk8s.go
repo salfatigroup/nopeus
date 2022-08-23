@@ -1,6 +1,8 @@
 package core
 
 import (
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/salfatigroup/nopeus/config"
@@ -10,6 +12,17 @@ import (
 // generateK8sHelmCharts generates the k8s/helm charts and manifests
 // based on the provided configurations
 func generateK8sHelmCharts(envName string, envData *config.EnvironmentConfig, cfg *config.NopeusConfig) error {
+	// get the cloud vendor from the configuration
+	cloudVendor, err := cfg.CAL.GetCloudVendor()
+	if err != nil {
+		return err
+	}
+
+	// prepare the destination directory for the k8s/helm charts
+	if err := setupK8sHelmDestLocation(cfg.Runtime.TmpFileLocation, cloudVendor, envName); err != nil {
+		return err
+	}
+
 	// map the data from the config to the runtime services for helm rendering
 	// for each service
 	if err := updateHelmRuntime(cfg, envName, envData); err != nil {
@@ -20,6 +33,20 @@ func generateK8sHelmCharts(envName string, envData *config.EnvironmentConfig, cf
 	for _, serviceTemplateData := range cfg.Runtime.HelmRuntime.ServiceTemplateData {
 		// render the helm values file
 		if err := templates.RenderHelmTemplateFile(serviceTemplateData); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func setupK8sHelmDestLocation(tmpFileLocation string, cloudVendor string, envName string) error {
+	// get the location path for the k8s/helm charts
+	workDir := filepath.Join(tmpFileLocation, cloudVendor, envName)
+
+	// create dir if not exists
+	if _, err := os.Stat(workDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(workDir, 0o755); err != nil {
 			return err
 		}
 	}

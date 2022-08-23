@@ -47,14 +47,14 @@ var liftoffCmd = &cobra.Command{
 // This command parses the configuration file and
 // deploys the application to the cloud
 func liftoff(cmd *cobra.Command, args []string) {
-	// init configs
-	initConfig()
-
 	fmt.Println(
 		"🔥",
 		util.GradientText("[NOPEUS::STARTUP]", "#db2777", "#f9a8d4"),
 		"- preparing your application for deployment to the cloud",
 	)
+
+	// init configs
+	initConfig()
 	cfg := config.GetNopeusConfig()
 
 	// deploy the application
