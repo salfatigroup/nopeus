@@ -57,6 +57,27 @@ changelog:
     - title: Other work
       order: 9999
 
+brews:
+  - tap:
+      owner: salfatigroup
+      name: homebrew-tap
+    folder: Formula
+    goarm: "7"
+    homepage: https://nopeus.co
+    description: Nopeus by Salfati Group is an end-to-end tool to manage your cloud applications in a single command
+    dependencies:
+    - name: go
+      type: optional
+    - name: git
+    test: |
+      system "#{bin}/nopeus --version"
+    install: |-
+      bin.install "goreleaser"
+      bash_completion.install "completions/nopeus.bash" => "nopeus"
+      zsh_completion.install "completions/nopeus.zsh" => "_nopeus"
+      fish_completion.install "completions/nopeus.fish"
+      man1.install "manpages/nopeus.1.gz"
+
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     replacements:

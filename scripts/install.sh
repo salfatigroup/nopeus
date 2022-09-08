@@ -4,6 +4,7 @@ TOKEN="$NOPEUS_TOKEN"
 OWNER="salfatigroup"
 REPO="nopeus"
 VERSION="${VERSION:-latest}"
+CURRENT_LOCATION="$(pwd)"
 FILE="nopeus_$(uname -s)_$(uname -m).tar.gz"
 
 function gh_curl() {
@@ -29,6 +30,17 @@ function gh_get_file() {
   return $?
 }
 
+# check if required tools exists
+if ! [ -x "$(command -v jq)" ]; then
+  >&2 echo -e "\033[31mERROR: \"jq\" not found\033[0m"
+  exit 1
+fi
+
+if ! [ -x "$(command -v wget)" ]; then
+  >&2 echo -e "\033[31mERROR: \"wget\" not found\033[0m"
+  exit 1
+fi
+
 if [ -z "$TOKEN" ]; then
   >&2 echo -e "\033[33mWARNING: \$TOKEN is empty\033[0m"
   exit 1
@@ -39,8 +51,8 @@ if [ "$VERSION" = "latest" ]; then
   echo "Latest version is \"$VERSION\""
 fi
 
-mkdir -p $REPO-$VERSION
-pushd $REPO-$VERSION > /dev/null
+mkdir -p "/tmp/$REPO-$VERSION"
+cd "/tmp/$REPO-$VERSION" > /dev/null
 
 # Start by getting the checksums if they are available.
 if ! gh_get_file checksums.txt $VERSION; then
@@ -71,6 +83,8 @@ fi
 
 mkdir -p "$HOME/nopeus"
 tar -xf "$FILE" -C "$HOME/nopeus/"
+# install in /usr/local/bin
+tar -xf "$FILE" -C /usr/local/bin/
 echo "nopeus binary is located under $HOME/nopeus/nopeus"
 
-popd > /dev/null
+cd $CURRENT_LOCATION > /dev/null
