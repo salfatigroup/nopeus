@@ -75,10 +75,6 @@ brews:
       system "#{bin}/nopeus --version"
     install: |-
       bin.install "nopeus"
-      bash_completion.install "completions/nopeus.bash" => "nopeus"
-      zsh_completion.install "completions/nopeus.zsh" => "_nopeus"
-      fish_completion.install "completions/nopeus.fish"
-      man1.install "manpages/nopeus.1.gz"
 
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
