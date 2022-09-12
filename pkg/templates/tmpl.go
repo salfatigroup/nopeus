@@ -91,30 +91,39 @@ func renderTerraformFile(cfg *config.NopeusConfig, destLocation string, envName 
 }
 
 // render a helm values chart
-func RenderHelmTemplateFile(runtimeServices config.ServiceTemplateData) error {
-	// get the template file
-	templateContent, err := StaticHelmTemplates.ReadFile(filepath.Join("helm", runtimeServices.GetHelmValuesTemplate()))
-	if err != nil {
-		return err
+func RenderHelmTemplateFile(runtimeServices config.ServiceTemplateData) (err error) {
+	if runtimeServices.GetHelmValuesFile() != "" {
+		templateContent := make([]byte, 0)
+		valuesTemplate := runtimeServices.GetHelmValuesTemplate()
+
+		if valuesTemplate != "" {
+			// get the template file
+			templateContent, err = StaticHelmTemplates.ReadFile(filepath.Join("helm", valuesTemplate))
+			if err != nil {
+				return err
+			}
+		}
+
+		// render template
+		tmpl, err := tmpl.New(valuesTemplate).
+			Funcs(GetTempalteFuncs()).
+			Parse(string(templateContent))
+		if err != nil {
+			return err
+		}
+
+		// create the buffer to write the rendered template to
+		var renderedBuffer bytes.Buffer
+
+		// render the template
+		if err := tmpl.Execute(&renderedBuffer, runtimeServices.GetHelmValues()); err != nil {
+			return err
+		}
+
+		return writeFile(runtimeServices.GetHelmValuesFile(), renderedBuffer.String())
 	}
 
-	// render template
-	tmpl, err := tmpl.New(runtimeServices.GetHelmValuesTemplate()).
-		Funcs(GetTempalteFuncs()).
-		Parse(string(templateContent))
-	if err != nil {
-		return err
-	}
-
-	// create the buffer to write the rendered template to
-	var renderedBuffer bytes.Buffer
-
-	// render the template
-	if err := tmpl.Execute(&renderedBuffer, runtimeServices.GetHelmValues()); err != nil {
-		return err
-	}
-
-	return writeFile(runtimeServices.GetHelmValuesFile(), renderedBuffer.String())
+	return nil
 }
 
 // render a specific template

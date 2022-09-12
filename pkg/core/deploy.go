@@ -12,12 +12,18 @@ import (
 	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
 	"github.com/salfatigroup/nopeus/logger"
+	"github.com/salfatigroup/nopeus/plugins"
 	"github.com/salfatigroup/nopeus/remote"
 )
 
 // Deploy the application to the cloud based on
 // the provided configurations
 func Deploy(cfg *config.NopeusConfig) error {
+	// run plugins on init
+	if err := plugins.RunOnInit(cfg); err != nil {
+		return err
+	}
+
 	// in parallel deploy all the environments
 	for envName, envData := range cfg.CAL.GetEnvironments() {
 		// load the environment variables for this deployment
@@ -42,6 +48,11 @@ func Deploy(cfg *config.NopeusConfig) error {
 
 		logger.Insight(&gologsnag.InsightOptions{Title: "deployments-by-nopeus", Value: 1, Icon: "🛰️"})
 		logger.Insight(&gologsnag.InsightOptions{Title: "deployed-apps", Value: len(cfg.CAL.Services), Icon: "🚀"})
+	}
+
+	// run plugins on finish
+	if err := plugins.RunOnFinish(cfg); err != nil {
+		return err
 	}
 
 	return nil
@@ -76,6 +87,13 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
 	var err1 error
 	var err2 error
 
+	// plugins run before generate
+	if err := plugins.RunBeforeGenerate(cfg, envName, envData); err != nil {
+		return err
+	}
+
+	logger.Debugf("before generate service map: %+v", cfg.Runtime.HelmRuntime.ServiceTemplateData)
+
 	// generate the terraform files
 	wg.Add(1)
 	go func() {
@@ -107,6 +125,11 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
 		return err2
 	}
 
+	// plugins run after generate
+	if err := plugins.RunAfterGenerate(cfg, envName, envData); err != nil {
+		return err
+	}
+
 	// get remote cache from nopeus cloud
 	if err := getRemoteCache(envName, envData, cfg); err != nil {
 		return err
@@ -118,8 +141,18 @@ func deployEnvironment(envName string, envData *config.EnvironmentConfig, cfg *c
 		return err
 	}
 
+	// plugins run before deploy
+	if err := plugins.RunBeforeDeploy(cfg, envName, envData); err != nil {
+		return err
+	}
+
 	// deploy the application to the cloud
 	if err := deployToCloud(envName, envData, cfg); err != nil {
+		return err
+	}
+
+	// plugins run after deploy
+	if err := plugins.RunAfterDeploy(cfg, envName, envData); err != nil {
 		return err
 	}
 

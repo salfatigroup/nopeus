@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/salfatigroup/nopeus/config"
+	"github.com/salfatigroup/nopeus/logger"
 	"github.com/salfatigroup/nopeus/templates"
 )
 
@@ -60,26 +61,20 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 	// store all the ingresss from each service
 	ingressList := []*config.Ingress{}
 
-	// apply cert-manager to the cluster (salfatigroup/cert-manager)
-	certManagerTemplateData, err := config.NewCertManagerTemplateData(cfg, envName)
-	if err != nil {
-		return err
-	}
-
-	// add the service template data to the helm runtime
-	cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, certManagerTemplateData)
-
 	// map the data from the config to the runtime services for helm rendering
 	// for each database service
-	for _, db := range cfg.CAL.GetStorage().Database {
-		// create a new service template data
-		serviceTemplateData, err := config.NewDatabaseServiceTemplateData(cfg, db, envName)
-		if err != nil {
-			return err
-		}
+	if cfg.CAL.GetStorage() != nil {
+		for _, db := range cfg.CAL.GetStorage().Database {
+			logger.Debugf("processing database service: %s", db.Name)
+			// create a new service template data
+			serviceTemplateData, err := config.NewDatabaseServiceTemplateData(cfg, db, envName)
+			if err != nil {
+				return err
+			}
 
-		// add the service template data to the helm runtime
-		cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, serviceTemplateData)
+			// add the service template data to the helm runtime
+			cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, serviceTemplateData)
+		}
 	}
 
 	// map the data from the config to the runtime services for helm rendering
@@ -89,6 +84,9 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 		return err
 	}
 	for serviceName, service := range services {
+		logger.Debugf("processing service: %s", serviceName)
+		logger.Debugf("service: %+v", service)
+
 		// create a new service template data
 		serviceTemplateData, err := config.NewServiceTemplateData(cfg, serviceName, service, envName, envData)
 		if err != nil {
@@ -116,13 +114,17 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 		}
 
 		// add the DATABASE_URL to each service for each storage
-		for _, db := range cfg.CAL.GetStorage().Database {
-			service.AddEnvironmentVariable("STORAGE_DATABASE_URL", db.Name, envName)
+		if cfg.CAL.GetStorage() != nil {
+			for _, db := range cfg.CAL.GetStorage().Database {
+				service.AddEnvironmentVariable("STORAGE_DATABASE_URL", db.Name, envName)
+			}
 		}
 	}
 
 	// if ingress exists create a proxy and add it to the helm runtime
 	if len(ingressList) > 0 {
+		logger.Debug("processing ingress")
+
 		// create a new ingress template data
 		ingressTemplateData, err := config.NewIngressTemplateData(cfg, ingressList, envName)
 		if err != nil {
@@ -132,13 +134,6 @@ func updateHelmRuntime(cfg *config.NopeusConfig, envName string, envData *config
 		// add the ingress template data to the helm runtime
 		cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, ingressTemplateData)
 	}
-
-	// NOTE: this must come last MUST come LAST!!!
-	checksumMap, err := config.NewChecksumTemplateData(cfg, envName)
-	if err != nil {
-		return err
-	}
-	cfg.Runtime.HelmRuntime.ServiceTemplateData = append(cfg.Runtime.HelmRuntime.ServiceTemplateData, checksumMap)
 
 	return nil
 }
