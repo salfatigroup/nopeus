@@ -8,6 +8,7 @@ use (
 	./pkg/helm
 	./pkg/kubernetes
 	./pkg/logger
+	./pkg/plugins
 	./pkg/remote
 	./pkg/templates
 )

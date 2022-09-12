@@ -111,10 +111,6 @@ func NewRuntimeConfig() *RuntimeConfig {
 				Name: "bitnami",
 				URL:  "https://charts.bitnami.com/bitnami",
 			},
-			{
-				Name: "jetstack",
-				URL:  "https://charts.jetstack.io",
-			},
 		},
 
 		// default namespace for the main deployments

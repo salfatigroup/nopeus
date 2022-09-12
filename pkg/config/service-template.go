@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	helmclient "github.com/mittwald/go-helm-client"
 )
@@ -59,30 +58,6 @@ type ServiceTemplateData interface {
 	GetChecksum() (string, error)
 }
 
-func NewCertManagerTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateData, error) {
-	cloudVendor, err := cfg.CAL.GetCloudVendor()
-	if err != nil {
-		return &NopeusDefaultMicroservice{}, err
-	}
-
-	workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
-	return &NopeusDefaultMicroservice{
-		Name:           "cert-manager-nopeus",
-		HelmPackage:    "salfatigroup/cert-manager",
-		ValuesTemplate: "cert-manager.values.yaml",
-		ValuesPath:     fmt.Sprintf("%s/cert-manager.values.yaml", workingDir),
-		Namespace:      cfg.Runtime.DefaultNamespace,
-		dryRun:         cfg.Runtime.DryRun,
-		Values: &HelmRendererValues{
-			Name: "cert-manager",
-			Custom: map[string]interface{}{
-				"Email":   "certificates@salfati.group",
-				"Staging": strings.Contains(env, "staging"),
-			},
-		},
-	}, nil
-}
-
 // return the default nopeus microservice template data
 func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, env string, envData *EnvironmentConfig) (ServiceTemplateData, error) {
 	cloudVendor, err := cfg.CAL.GetCloudVendor()
@@ -97,7 +72,7 @@ func NewServiceTemplateData(cfg *NopeusConfig, name string, service *Service, en
 		ValuesTemplate: "service.values.yaml",
 		ValuesPath:     fmt.Sprintf("%s/%s.values.yaml", workingDir, name),
 		Namespace:      cfg.Runtime.DefaultNamespace,
-		dryRun:         cfg.Runtime.DryRun,
+		DryRun:         cfg.Runtime.DryRun,
 		Values: &HelmRendererValues{
 			Name:        name,
 			Image:       service.GetImage(),
@@ -136,34 +111,6 @@ func NewDatabaseServiceTemplateData(cfg *NopeusConfig, db *DatabaseStorage, env 
 			Name:    db.Name,
 			Image:   dbImage,
 			Version: db.Version,
-		},
-	}, nil
-}
-
-// append the checksum chart as a new template data item
-func NewChecksumTemplateData(cfg *NopeusConfig, env string) (ServiceTemplateData, error) {
-	cloudVendor, err := cfg.CAL.GetCloudVendor()
-	if err != nil {
-		return &NopeusDefaultMicroservice{}, err
-	}
-
-	checksumMap, err := generateChecksumMap(cfg.Runtime.HelmRuntime.ServiceTemplateData)
-	if err != nil {
-		return &NopeusDefaultMicroservice{}, err
-	}
-
-	workingDir := filepath.Join(cfg.Runtime.TmpFileLocation, cloudVendor, env)
-	return &NopeusDefaultMicroservice{
-		Name:           "checksum",
-		HelmPackage:    "salfatigroup/checksum",
-		ValuesTemplate: "checksum.values.yaml",
-		ValuesPath:     fmt.Sprintf("%s/checksum.values.yaml", workingDir),
-		Namespace:      "nopeus",
-		dryRun:         cfg.Runtime.DryRun,
-		Values: &HelmRendererValues{
-			Custom: map[string]interface{}{
-				"Checksum": checksumMap,
-			},
 		},
 	}, nil
 }

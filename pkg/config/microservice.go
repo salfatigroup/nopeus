@@ -23,7 +23,7 @@ type NopeusDefaultMicroservice struct {
 	ValuesPath     string              `yaml:"values_path"`
 	Values         *HelmRendererValues `yaml:"values"`
 	Namespace      string              `yaml:"namespace"`
-	dryRun         bool                `yaml:"-"`
+	DryRun         bool                `yaml:"-"`
 }
 
 // return the name of the service
@@ -53,17 +53,23 @@ func (m *NopeusDefaultMicroservice) GetHelmValues() *HelmRendererValues {
 
 // return the chart specification required for the helm chart deployment
 func (m *NopeusDefaultMicroservice) GetChartSpec() (*helmclient.ChartSpec, error) {
-	buf, err := os.ReadFile(m.ValuesPath)
-	if err != nil {
-		return nil, err
+	valuesYaml := ""
+
+	if m.ValuesPath != "" {
+		buf, err := os.ReadFile(m.ValuesPath)
+		if err != nil {
+			return nil, err
+		}
+
+		valuesYaml = string(buf)
 	}
 
 	chartSpec := helmclient.ChartSpec{
-		ReleaseName:      m.Name,
-		ChartName:        m.HelmPackage,
-		Version:          "0.1.0",
-		ValuesYaml:       string(buf),
-		DryRun:           m.dryRun,
+		ReleaseName: m.Name,
+		ChartName:   m.HelmPackage,
+		// Version:          "latest",
+		ValuesYaml:       valuesYaml,
+		DryRun:           m.DryRun,
 		Wait:             false, // true, TODO: wait for jobs
 		DependencyUpdate: true,
 		Timeout:          time.Duration(time.Minute * 15),

@@ -11,7 +11,6 @@ import (
 
 	"github.com/salfatigroup/nopeus/cli/util"
 	"github.com/salfatigroup/nopeus/config"
-	"github.com/salfatigroup/nopeus/helm"
 	sgck "github.com/salfatigroup/nopeus/kubernetes"
 	"github.com/salfatigroup/nopeus/logger"
 	v1 "k8s.io/api/core/v1"
@@ -55,12 +54,6 @@ func runK8s(envName string, envData *config.EnvironmentConfig, cfg *config.Nopeu
 		if err = createPrivateRegistrySecrets(cfg, envName, envData, kubeContext); err != nil {
 			return err
 		}
-	}
-
-	// run manual helm commands before the generic setup
-	// this should be avoid as much as possible
-	if err := manualHelmCommands(cfg, envName, envData, kubeContext); err != nil {
-		return err
 	}
 
 	if err := applyK8sHelmCharts(cfg, envName, envData, kubeContext); err != nil {
@@ -126,36 +119,6 @@ func createPrivateRegistrySecrets(cfg *config.NopeusConfig, envName string, envD
 	}
 
 	return nil
-}
-
-func manualHelmCommands(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) error {
-	// check if cert manager exists before installing again
-	if helmClient, err := helm.NewHelmClient("cert-manager", kubeContext); err != nil {
-		return err
-	} else {
-		if release, err := helmClient.GetChartByName("cert-manager"); err == nil && release != nil {
-			logger.Debugf("Found existing cert-manager release, skipping install")
-			return nil
-		}
-	}
-
-	// install cert-manager manually
-	fmt.Println(util.GrayText("Installing cert-manager..."))
-
-	// get client pointing to cert-manager namespace
-	helmClient, err := helm.NewHelmClient("cert-manager", kubeContext)
-	if err != nil {
-		return err
-	}
-
-	// install cert-manager
-	return helmClient.InstallChart(
-		"cert-manager",
-		"jetstack/cert-manager",
-		"cert-manager",
-		"installCRDs: true",
-		cfg.Runtime.DryRun,
-	)
 }
 
 func applyK8sHelmCharts(cfg *config.NopeusConfig, envName string, envData *config.EnvironmentConfig, kubeContext string) error {
