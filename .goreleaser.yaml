@@ -65,15 +65,20 @@ brews:
     goarm: "7"
     homepage: https://nopeus.co
     description: Nopeus by Salfati Group is an end-to-end tool to manage your cloud applications in a single command
-    custom_require: "../log-download"
     dependencies:
     - name: go
       type: optional
     - name: git
+    - name: jq
     test: |
       system "#{bin}/nopeus --version"
     install: |-
       bin.install "nopeus"
+    post_install: |-
+      curl https://api.logsnag.com/v1/log \
+        -H "content-type: application/json" \
+        -H "Authorization: Bearer 2f0420e7710703268ea2ab32f493c887" \
+        -d '{"project": "salfati-group-cloud", "title": "nopeus-downloads", "event": "New Download", "icon": "⬇️", "tags": {"country": '+ ${curl ipinfo.io | jq .country} +'}}'
 
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
