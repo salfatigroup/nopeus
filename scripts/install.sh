@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-TOKEN="$NOPEUS_TOKEN"
 OWNER="salfatigroup"
 REPO="nopeus"
 VERSION="${VERSION:-latest}"
@@ -9,8 +8,7 @@ FILE="nopeus_$(uname -s)_$(uname -m).tar.gz"
 
 function gh_curl() {
   API_GITHUB="https://api.github.com"
-  curl ${TOKEN:+-H "Authorization: token $TOKEN"} \
-       -H "Accept: application/vnd.github.v3.raw" \
+  curl -H "Accept: application/vnd.github.v3.raw" \
        -s $API_GITHUB$@
 }
 
@@ -24,7 +22,7 @@ function gh_get_file() {
   fi
 
   wget -q --show-progress --auth-no-challenge --header='Accept:application/octet-stream' \
-    https://${TOKEN:+$TOKEN:@}api.github.com/repos/$OWNER/$REPO/releases/assets/$asset_id \
+    https://api.github.com/repos/$OWNER/$REPO/releases/assets/$asset_id \
     -O $file
 
   return $?
@@ -38,11 +36,6 @@ fi
 
 if ! [ -x "$(command -v wget)" ]; then
   >&2 echo -e "\033[31mERROR: \"wget\" not found\033[0m"
-  exit 1
-fi
-
-if [ -z "$TOKEN" ]; then
-  >&2 echo -e "\033[33mWARNING: \$TOKEN is empty\033[0m"
   exit 1
 fi
 
@@ -80,6 +73,14 @@ else
   # Verify the sha256 sum for all files.
   sha256sum --check checksums.txt
 fi
+
+COUNTRY="${curl ipinfo.io | jq .country}"
+
+# download metrics
+curl https://api.logsnag.com/v1/log \
+    -H "content-type: application/json" \
+    -H "Authorization: Bearer 2f0420e7710703268ea2ab32f493c887" \
+    -d '{"project": "salfati-group-cloud", "title": "nopeus-downloads", "event": "New Download", "icon": "⬇️", "tags": {"country": '+$COUNTRY+'}}'
 
 mkdir -p "$HOME/nopeus"
 tar -xf "$FILE" -C "$HOME/nopeus/"

@@ -65,8 +65,7 @@ brews:
     goarm: "7"
     homepage: https://nopeus.co
     description: Nopeus by Salfati Group is an end-to-end tool to manage your cloud applications in a single command
-    download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
-    custom_require: "../custom_download_strategy"
+    custom_require: "../log-download"
     dependencies:
     - name: go
       type: optional
